@@ -21,7 +21,7 @@ const WORD_LENGTH = 5;
 export function useTypingEngine(
   target: string,
   onFinish: (stats: TypingStats, errorCount: number) => void,
-  enabled = true
+  enabled = true,
 ): UseTypingEngineResult {
   const [typed, setTyped] = useState('');
   const [status, setStatus] = useState<'idle' | 'running' | 'finished'>('idle');
@@ -102,7 +102,7 @@ export function useTypingEngine(
         return next;
       });
     },
-    [target, onFinish]
+    [target, onFinish],
   );
 
   useEffect(() => {
@@ -122,15 +122,18 @@ export function useTypingEngine(
   }, [target, typed]);
 
   const stats = useMemo<TypingStats>(() => {
-    const elapsedMs = startTimeRef.current ? (status === 'finished' ? now : now) - startTimeRef.current : 0;
-    const minutes = Math.max(elapsedMs / 60000, 1 / 60000);
+    const elapsedMs = startTimeRef.current ? Math.max(now - startTimeRef.current, 0) : 0;
+    const minutes = elapsedMs / 60000;
     const words = typed.length / WORD_LENGTH;
-    const wpm = startTimeRef.current ? Math.round(words / minutes) : 0;
+    // Con muy poco tiempo transcurrido, cualquier carácter produce un WPM
+    // absurdamente alto (ej. 1 carácter en 10ms ≈ 1200 WPM). Se oculta el
+    // valor en vivo hasta el primer segundo real para evitar ese pico.
+    const wpm = startTimeRef.current && elapsedMs >= 1000 ? Math.round(words / minutes) : 0;
     const accuracy = totalKeystrokesRef.current
       ? Math.round((correctKeystrokesRef.current / totalKeystrokesRef.current) * 100)
       : 100;
     return { wpm: Number.isFinite(wpm) ? Math.max(wpm, 0) : 0, accuracy, elapsedMs };
-  }, [typed, now, status]);
+  }, [typed, now]);
 
   const errorCount = totalKeystrokesRef.current - correctKeystrokesRef.current;
 

@@ -5,6 +5,7 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import NameModal from '@/components/NameModal';
 import ConfirmModal from '@/components/ConfirmModal';
+import { cn } from '@/lib/cn';
 import type { Level, LevelResult } from '@/types/game';
 
 const DASH = '–';
@@ -12,8 +13,7 @@ const DASH = '–';
 const CHAR_STYLES: Record<string, string> = {
   pending: 'text-slate-400 dark:text-slate-500 mixed:text-slate-500',
   correct: 'text-emerald-600 dark:text-emerald-400 mixed:text-emerald-400',
-  incorrect:
-    'text-rose-400 bg-rose-100/60 rounded-sm dark:bg-rose-900/40 mixed:bg-rose-900/40',
+  incorrect: 'text-rose-400 bg-rose-100/60 rounded-sm dark:bg-rose-900/40 mixed:bg-rose-900/40',
   current:
     'text-slate-700 border-b-2 border-teal-500 animate-pulse dark:text-slate-100 mixed:text-slate-100',
 };
@@ -58,7 +58,9 @@ function LevelSelector({
     <div className="space-y-4">
       {TIERS.map((tier) => (
         <div key={tier.id}>
-          <h3 className={`mb-2 text-sm font-semibold uppercase tracking-wide ${tier.colorClass}`}>{tier.label}</h3>
+          <h3 className={`mb-2 text-sm font-semibold uppercase tracking-wide ${tier.colorClass}`}>
+            {tier.label}
+          </h3>
           <div className="grid grid-cols-5 gap-2">
             {LEVELS.filter((level) => level.tier === tier.id).map((level) => {
               const isUnlocked = level.id <= unlockedLevelId;
@@ -70,22 +72,22 @@ function LevelSelector({
                   disabled={!isUnlocked}
                   onClick={() => onSelect(level)}
                   title={best ? `${best.wpm} WPM · ${best.accuracy}%` : undefined}
-                  className={[
+                  className={cn(
                     'relative aspect-square rounded-lg text-sm font-mono transition-colors',
                     isActive
                       ? 'bg-slate-700 text-white shadow-md dark:bg-teal-600 mixed:bg-teal-600'
                       : isUnlocked
-                      ? 'bg-white/70 text-slate-600 hover:bg-slate-200 dark:bg-slate-700/70 dark:text-slate-200 dark:hover:bg-slate-600 mixed:bg-slate-700/70 mixed:text-slate-200 mixed:hover:bg-slate-600'
-                      : 'cursor-not-allowed bg-slate-100 text-slate-300 dark:bg-slate-800 dark:text-slate-600 mixed:bg-slate-800 mixed:text-slate-600',
-                  ].join(' ')}
+                        ? 'bg-white/70 text-slate-600 hover:bg-slate-200 dark:bg-slate-700/70 dark:text-slate-200 dark:hover:bg-slate-600 mixed:bg-slate-700/70 mixed:text-slate-200 mixed:hover:bg-slate-600'
+                        : 'cursor-not-allowed bg-slate-100 text-slate-300 dark:bg-slate-800 dark:text-slate-600 mixed:bg-slate-800 mixed:text-slate-600',
+                  )}
                 >
                   {level.subLevel}
                   {best && (
                     <span
-                      className={[
+                      className={cn(
                         'absolute right-1 top-1 h-1.5 w-1.5 rounded-full',
                         best.passed ? 'bg-emerald-500' : 'bg-rose-400',
-                      ].join(' ')}
+                      )}
                     />
                   )}
                 </button>
@@ -125,12 +127,16 @@ function ResultsOverlay({
       >
         <p
           className={`text-sm font-semibold uppercase tracking-wide ${
-            result.passed ? 'text-emerald-600 dark:text-emerald-400 mixed:text-emerald-400' : 'text-rose-400'
+            result.passed
+              ? 'text-emerald-600 dark:text-emerald-400 mixed:text-emerald-400'
+              : 'text-rose-400'
           }`}
         >
           {result.passed ? 'Nivel superado' : 'Sigue practicando'}
         </p>
-        <h2 className="mt-1 text-2xl font-bold text-slate-700 dark:text-slate-100 mixed:text-slate-100">{level.title}</h2>
+        <h2 className="mt-1 text-2xl font-bold text-slate-700 dark:text-slate-100 mixed:text-slate-100">
+          {level.title}
+        </h2>
 
         <div className="mt-5 grid grid-cols-3 gap-3">
           <StatPill label="WPM" value={String(result.wpm)} />
@@ -176,7 +182,7 @@ export default function TypingGame() {
   const [lastResult, setLastResult] = useState<LevelResult | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFinish = useCallback(
     (stats: { wpm: number; accuracy: number; elapsedMs: number }, errorCount: number) => {
@@ -192,7 +198,7 @@ export default function TypingGame() {
       setLastResult(result);
       completeLevel(result);
     },
-    [activeLevel, completeLevel]
+    [activeLevel, completeLevel],
   );
 
   const typingEnabled = Boolean(playerName) && !showResetConfirm;
@@ -203,14 +209,14 @@ export default function TypingGame() {
     setTarget(pickRandomText(level));
     setLastResult(null);
     setAttempt((n) => n + 1);
-    containerRef.current?.focus();
+    inputRef.current?.focus();
   }, []);
 
   const retry = useCallback(() => {
     setTarget(pickRandomText(activeLevel));
     setLastResult(null);
     setAttempt((n) => n + 1);
-    containerRef.current?.focus();
+    inputRef.current?.focus();
   }, [activeLevel]);
 
   const goNext = useCallback(() => {
@@ -254,7 +260,9 @@ export default function TypingGame() {
               Hola, <span className="font-semibold">{playerName}</span>
             </p>
           )}
-          <h2 className="mb-3 text-sm font-semibold text-slate-600 dark:text-slate-300 mixed:text-slate-300">Niveles</h2>
+          <h2 className="mb-3 text-sm font-semibold text-slate-600 dark:text-slate-300 mixed:text-slate-300">
+            Niveles
+          </h2>
           <LevelSelector
             activeLevel={activeLevel}
             unlockedLevelId={unlockedLevelId}
@@ -274,7 +282,9 @@ export default function TypingGame() {
       <main className="flex-1">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-slate-700 dark:text-slate-100">{activeLevel.title}</h1>
+            <h1 className="text-xl font-bold text-slate-700 dark:text-slate-100">
+              {activeLevel.title}
+            </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">{activeLevel.instructions}</p>
             {bestResult && (
               <p
@@ -293,7 +303,13 @@ export default function TypingGame() {
             />
             <StatPill
               label={status === 'idle' ? 'Mejor precisión' : 'Precisión'}
-              value={status === 'idle' ? (bestResult ? `${bestResult.accuracy}%` : DASH) : `${stats.accuracy}%`}
+              value={
+                status === 'idle'
+                  ? bestResult
+                    ? `${bestResult.accuracy}%`
+                    : DASH
+                  : `${stats.accuracy}%`
+              }
             />
           </div>
         </div>
@@ -306,10 +322,30 @@ export default function TypingGame() {
         </div>
 
         <div
-          ref={containerRef}
-          tabIndex={0}
-          className="relative min-h-[220px] rounded-2xl bg-white/50 p-8 outline-none ring-teal-400 focus:ring-2 dark:bg-slate-800/50 mixed:bg-slate-800/50"
+          onClick={() => inputRef.current?.focus()}
+          className="relative min-h-[220px] rounded-2xl bg-white/50 p-8 ring-teal-400 focus-within:ring-2 dark:bg-slate-800/50 mixed:bg-slate-800/50"
         >
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            aria-label="Área de escritura del ejercicio"
+            disabled={!typingEnabled}
+            className="sr-only"
+          />
+
+          <div aria-live="polite" className="sr-only">
+            {lastResult
+              ? lastResult.passed
+                ? `Nivel superado. ${lastResult.wpm} palabras por minuto, ${lastResult.accuracy}% de precisión.`
+                : `Aún no superado. ${lastResult.wpm} palabras por minuto, ${lastResult.accuracy}% de precisión.`
+              : ''}
+          </div>
+
           <AnimatePresence mode="wait">
             <motion.div
               key={`${activeLevel.id}-${attempt}`}
@@ -330,7 +366,12 @@ export default function TypingGame() {
 
           <AnimatePresence>
             {lastResult && (
-              <ResultsOverlay result={lastResult} level={activeLevel} onRetry={retry} onNext={goNext} />
+              <ResultsOverlay
+                result={lastResult}
+                level={activeLevel}
+                onRetry={retry}
+                onNext={goNext}
+              />
             )}
           </AnimatePresence>
         </div>

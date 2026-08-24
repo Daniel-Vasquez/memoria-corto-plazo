@@ -1,5 +1,9 @@
 export type Theme = 'light' | 'dark' | 'mixed';
 
+// Duplicado a propósito en el <script is:inline> de src/layouts/Layout.astro
+// (el script anti-FOUC debe ser síncrono y no puede importar este módulo).
+// Si cambia STORAGE_KEY o los valores válidos de Theme, hay que actualizar
+// también ese script.
 export const THEME_STORAGE_KEY = 'theme-preference';
 
 export function isTheme(value: unknown): value is Theme {

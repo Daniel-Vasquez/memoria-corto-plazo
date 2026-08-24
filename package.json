@@ -8,23 +8,35 @@
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "dependencies": {
-    "@astrojs/react": "^4.2.0",
-    "@astrojs/tailwind": "^5.1.5",
-    "astro": "^5.2.5",
-    "framer-motion": "^11.15.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "recharts": "^3.10.1",
-    "tailwindcss": "^3.4.17",
-    "zustand": "^5.0.3"
+    "@astrojs/react": "4.2.0",
+    "@astrojs/tailwind": "5.1.5",
+    "astro": "5.2.5",
+    "framer-motion": "11.15.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "recharts": "3.10.1",
+    "tailwindcss": "3.4.17",
+    "zustand": "5.0.3"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.4",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
-    "typescript": "^5.7.3"
+    "@astrojs/check": "0.9.4",
+    "@eslint/js": "^9.39.5",
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-astro": "^1.7.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript": "5.7.3",
+    "typescript-eslint": "^8.68.0"
   }
 }

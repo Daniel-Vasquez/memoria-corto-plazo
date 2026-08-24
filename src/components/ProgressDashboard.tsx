@@ -50,7 +50,8 @@ function useIsDarkSurface() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const update = () => setIsDark(root.classList.contains('dark') || root.classList.contains('theme-mixed'));
+    const update = () =>
+      setIsDark(root.classList.contains('dark') || root.classList.contains('theme-mixed'));
     update();
     const observer = new MutationObserver(update);
     observer.observe(root, { attributes: true, attributeFilter: ['class'] });
@@ -76,10 +77,15 @@ function buildChartData(bestResults: Record<number, LevelResult>): ChartPoint[] 
   });
 }
 
+interface StatusDotProps {
+  cx?: number;
+  cy?: number;
+  payload: ChartPoint;
+}
+
 function renderStatusDot(isDark: boolean) {
   const ring = isDark ? '#1e293b' : '#ffffff';
-  return function StatusDot(props: any) {
-    const { cx, cy, payload } = props;
+  return function StatusDot({ cx = 0, cy = 0, payload }: StatusDotProps) {
     if (payload.wpm === null) return null;
     if (payload.passed) {
       return <circle cx={cx} cy={cy} r={4.5} fill={STATUS_GOOD} stroke={ring} strokeWidth={2} />;
@@ -100,26 +106,39 @@ function renderStatusDot(isDark: boolean) {
   };
 }
 
-function ChartTooltip({ active, payload }: any) {
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload: ChartPoint }>;
+}
+
+function ChartTooltip({ active, payload }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
-  const point: ChartPoint = payload[0].payload;
+  const point = payload[0].payload;
   return (
     <div className="rounded-xl bg-white px-4 py-3 text-sm shadow-lg ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700 mixed:bg-slate-800 mixed:ring-slate-700">
-      <p className="font-semibold text-slate-700 dark:text-slate-100 mixed:text-slate-100">{point.title}</p>
+      <p className="font-semibold text-slate-700 dark:text-slate-100 mixed:text-slate-100">
+        {point.title}
+      </p>
       {point.wpm === null ? (
-        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500 mixed:text-slate-500">Aún no intentado</p>
+        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500 mixed:text-slate-500">
+          Aún no intentado
+        </p>
       ) : (
         <>
           <p
             className={`mt-1 text-xs font-semibold uppercase tracking-wide ${
-              point.passed ? 'text-emerald-600 dark:text-emerald-400 mixed:text-emerald-400' : 'text-rose-500'
+              point.passed
+                ? 'text-emerald-600 dark:text-emerald-400 mixed:text-emerald-400'
+                : 'text-rose-500'
             }`}
           >
             {point.passed ? 'Superado' : 'No superado'}
           </p>
           <p className="mt-1 text-slate-600 dark:text-slate-300 mixed:text-slate-300">
             WPM: <span className="font-mono font-medium">{point.wpm}</span>{' '}
-            <span className="text-xs text-slate-400 dark:text-slate-500 mixed:text-slate-500">(objetivo {point.minWpm})</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 mixed:text-slate-500">
+              (objetivo {point.minWpm})
+            </span>
           </p>
           <p className="text-slate-600 dark:text-slate-300 mixed:text-slate-300">
             Precisión: <span className="font-mono font-medium">{point.accuracy}%</span>{' '}
@@ -136,11 +155,17 @@ function ChartTooltip({ active, payload }: any) {
 function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-2xl bg-white/60 px-5 py-4 shadow-sm dark:bg-slate-800/60 mixed:bg-slate-800/60">
-      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mixed:text-slate-400">{label}</p>
+      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mixed:text-slate-400">
+        {label}
+      </p>
       <p className="mt-1 font-mono text-2xl font-semibold text-slate-700 dark:text-slate-100 mixed:text-slate-100">
         {value}
       </p>
-      {hint && <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500 mixed:text-slate-500">{hint}</p>}
+      {hint && (
+        <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500 mixed:text-slate-500">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
@@ -173,7 +198,7 @@ export default function ProgressDashboard() {
         const ids = LEVELS.filter((l) => l.tier === tier.id).map((l) => l.id);
         return { tier: tier.id, label: tier.label, start: Math.min(...ids), end: Math.max(...ids) };
       }),
-    []
+    [],
   );
 
   const gridColor = isDark ? '#334155' : '#e2e8f0';
@@ -189,7 +214,11 @@ export default function ProgressDashboard() {
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Niveles superados" value={`${stats.passedCount}/40`} />
         <StatCard label="Nivel actual" value={String(unlockedLevelId)} />
-        <StatCard label="WPM promedio" value={attempted.length ? String(stats.avgWpm) : '–'} hint="en niveles intentados" />
+        <StatCard
+          label="WPM promedio"
+          value={attempted.length ? String(stats.avgWpm) : '–'}
+          hint="en niveles intentados"
+        />
         <StatCard label="Mejor WPM" value={attempted.length ? String(stats.bestWpm) : '–'} />
       </div>
 
@@ -228,15 +257,24 @@ export default function ProgressDashboard() {
               </thead>
               <tbody>
                 {attempted.map((p) => (
-                  <tr key={p.id} className="border-t border-slate-200 dark:border-slate-700 mixed:border-slate-700">
-                    <td className="px-3 py-2 text-slate-700 dark:text-slate-200 mixed:text-slate-200">{p.title}</td>
-                    <td className="px-3 py-2 font-mono text-slate-600 dark:text-slate-300 mixed:text-slate-300">{p.wpm}</td>
+                  <tr
+                    key={p.id}
+                    className="border-t border-slate-200 dark:border-slate-700 mixed:border-slate-700"
+                  >
+                    <td className="px-3 py-2 text-slate-700 dark:text-slate-200 mixed:text-slate-200">
+                      {p.title}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-slate-600 dark:text-slate-300 mixed:text-slate-300">
+                      {p.wpm}
+                    </td>
                     <td className="px-3 py-2 font-mono text-slate-600 dark:text-slate-300 mixed:text-slate-300">
                       {p.accuracy}%
                     </td>
                     <td
                       className={`px-3 py-2 text-xs font-semibold ${
-                        p.passed ? 'text-emerald-600 dark:text-emerald-400 mixed:text-emerald-400' : 'text-rose-500'
+                        p.passed
+                          ? 'text-emerald-600 dark:text-emerald-400 mixed:text-emerald-400'
+                          : 'text-rose-500'
                       }`}
                     >
                       {p.passed ? 'Superado' : 'No superado'}
@@ -287,7 +325,10 @@ export default function ProgressDashboard() {
                   domain={[0, 'dataMax + 10']}
                   allowDecimals={false}
                 />
-                <Tooltip content={<ChartTooltip />} cursor={{ stroke: axisColor, strokeDasharray: '3 3' }} />
+                <Tooltip
+                  content={<ChartTooltip />}
+                  cursor={{ stroke: axisColor, strokeDasharray: '3 3' }}
+                />
                 <Area
                   type="monotone"
                   dataKey="wpm"
@@ -304,7 +345,12 @@ export default function ProgressDashboard() {
                   strokeWidth={2}
                   connectNulls={false}
                   dot={renderStatusDot(isDark)}
-                  activeDot={{ r: 6, fill: LINE_COLOR, stroke: isDark ? '#1e293b' : '#ffffff', strokeWidth: 2 }}
+                  activeDot={{
+                    r: 6,
+                    fill: LINE_COLOR,
+                    stroke: isDark ? '#1e293b' : '#ffffff',
+                    strokeWidth: 2,
+                  }}
                   isAnimationActive
                   animationDuration={800}
                 />
@@ -313,11 +359,17 @@ export default function ProgressDashboard() {
 
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500 dark:text-slate-400 mixed:text-slate-400">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATUS_GOOD }} />
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: STATUS_GOOD }}
+                />
                 Superado
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rotate-45" style={{ backgroundColor: STATUS_CRITICAL }} />
+                <span
+                  className="inline-block h-2.5 w-2.5 rotate-45"
+                  style={{ backgroundColor: STATUS_CRITICAL }}
+                />
                 No superado
               </span>
               {TIERS.map((tier) => (
