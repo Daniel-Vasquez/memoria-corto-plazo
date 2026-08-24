@@ -33,13 +33,11 @@ const {
         let theme = 'light';
         try {
           const stored = localStorage.getItem(STORAGE_KEY);
-          if (stored === 'light' || stored === 'dark' || stored === 'mixed') theme = stored;
+          if (stored === 'light' || stored === 'dark') theme = stored;
         } catch {
           // localStorage inaccesible (modo privado, etc.) — usamos el valor por defecto.
         }
-        const root = document.documentElement;
-        if (theme === 'dark') root.classList.add('dark');
-        else if (theme === 'mixed') root.classList.add('theme-mixed');
+        if (theme === 'dark') document.documentElement.classList.add('dark');
       })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

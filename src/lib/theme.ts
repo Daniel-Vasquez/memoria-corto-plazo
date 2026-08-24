@@ -1,4 +1,4 @@
-export type Theme = 'light' | 'dark' | 'mixed';
+export type Theme = 'light' | 'dark';
 
 // Duplicado a propósito en el <script is:inline> de src/layouts/Layout.astro
 // (el script anti-FOUC debe ser síncrono y no puede importar este módulo).
@@ -7,7 +7,7 @@ export type Theme = 'light' | 'dark' | 'mixed';
 export const THEME_STORAGE_KEY = 'theme-preference';
 
 export function isTheme(value: unknown): value is Theme {
-  return value === 'light' || value === 'dark' || value === 'mixed';
+  return value === 'light' || value === 'dark';
 }
 
 export function readStoredTheme(): Theme {
@@ -21,10 +21,7 @@ export function readStoredTheme(): Theme {
 }
 
 export function applyTheme(theme: Theme) {
-  const root = document.documentElement;
-  root.classList.remove('dark', 'theme-mixed');
-  if (theme === 'dark') root.classList.add('dark');
-  else if (theme === 'mixed') root.classList.add('theme-mixed');
+  document.documentElement.classList.toggle('dark', theme === 'dark');
 }
 
 export function persistTheme(theme: Theme) {

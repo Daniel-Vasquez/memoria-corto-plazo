@@ -4,7 +4,6 @@ import { applyTheme, persistTheme, readStoredTheme, type Theme } from '@/lib/the
 const OPTIONS: { value: Theme; label: string; symbol: string }[] = [
   { value: 'light', label: 'Claro', symbol: '☀' },
   { value: 'dark', label: 'Oscuro', symbol: '☾' },
-  { value: 'mixed', label: 'Mixto', symbol: '◐' },
 ];
 
 export default function ThemeToggle() {
@@ -33,7 +32,7 @@ export default function ThemeToggle() {
     <div
       role="radiogroup"
       aria-label="Tema de la interfaz"
-      className="inline-flex items-center gap-1 rounded-full bg-slate-900/5 p-1 dark:bg-slate-100/10 mixed:bg-slate-100/10"
+      className="inline-flex items-center gap-1 rounded-full bg-slate-900/5 p-1 dark:bg-slate-100/10"
     >
       {OPTIONS.map((option) => {
         const isActive = theme === option.value;
@@ -49,7 +48,7 @@ export default function ThemeToggle() {
               'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
               isActive
                 ? 'bg-teal-600 text-white shadow-sm'
-                : 'text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-slate-100/10 mixed:text-slate-300 mixed:hover:bg-slate-100/10',
+                : 'text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-slate-100/10',
             ].join(' ')}
           >
             <span aria-hidden="true">{option.symbol}</span>

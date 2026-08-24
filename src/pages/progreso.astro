@@ -6,17 +6,14 @@ import ThemeToggle from '@/components/ThemeToggle';
 
 <Layout title="Mecanografía · Tu progreso">
   <header
-    class="border-b border-transparent px-6 py-4 transition-colors dark:border-slate-800 dark:bg-slate-900 mixed:border-slate-800 mixed:bg-slate-900"
+    class="border-b border-transparent px-6 py-4 transition-colors dark:border-slate-800 dark:bg-slate-900"
   >
     <div class="mx-auto flex max-w-6xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
       <div class="text-center sm:text-left">
-        <a
-          href="/"
-          class="text-sm font-medium text-teal-600 hover:underline dark:text-teal-400 mixed:text-teal-400"
-        >
+        <a href="/" class="text-sm font-medium text-teal-600 hover:underline dark:text-teal-400">
           ← Volver al juego
         </a>
-        <h1 class="text-3xl font-bold text-slate-700 dark:text-slate-100 mixed:text-slate-100">Tu progreso</h1>
+        <h1 class="text-3xl font-bold text-slate-700 dark:text-slate-100">Tu progreso</h1>
       </div>
       <ThemeToggle client:load />
     </div>
@@ -25,7 +22,7 @@ import ThemeToggle from '@/components/ThemeToggle';
   <ProgressDashboard client:load />
 
   <footer
-    class="mt-10 border-t border-transparent px-6 py-6 text-center text-sm text-slate-500 transition-colors dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 mixed:border-slate-800 mixed:bg-slate-900 mixed:text-slate-400"
+    class="mt-10 border-t border-transparent px-6 py-6 text-center text-sm text-slate-500 transition-colors dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
   >
     <p>Hecho para practicar mecanografía · tu progreso se guarda solo en este navegador.</p>
   </footer>

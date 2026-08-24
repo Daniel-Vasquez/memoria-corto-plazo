@@ -51,8 +51,8 @@ function KeyCap({ label, active, wide }: { label: string; active: boolean; wide?
         'flex items-center justify-center rounded-md border font-mono text-xs transition-colors',
         wide ? 'min-w-[6rem] px-2 py-1' : 'min-w-[1.75rem] px-1.5 py-1',
         active
-          ? 'border-teal-500 bg-teal-500 text-white shadow-sm dark:border-teal-400 mixed:border-teal-400'
-          : 'border-slate-200 bg-white/70 text-slate-500 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-400 mixed:border-slate-700 mixed:bg-slate-800/70 mixed:text-slate-400',
+          ? 'border-teal-500 bg-teal-500 text-white shadow-sm dark:border-teal-400'
+          : 'border-slate-200 bg-white/70 text-slate-500 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-400',
       )}
     >
       {label}

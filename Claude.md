@@ -9,8 +9,7 @@ guía (ASDF JKL;) hasta fragmentos de código real (HTML/JS/CSS/SQL).
 - **React 18** vía `@astrojs/react`, montado con `client:load` en `TypingGame`
   (necesita capturar `keydown` desde el primer render; `client:visible` no
   sirve aquí).
-- **Tailwind CSS 3** vía `@astrojs/tailwind`, con `darkMode: 'class'` y un
-  plugin propio que añade la variante `mixed:` (ver "Sistema de temas").
+- **Tailwind CSS 3** vía `@astrojs/tailwind`, con `darkMode: 'class'`.
 - **Zustand** (`zustand/middleware persist`) para estado global — progreso y
   nombre del jugador persistidos en `localStorage` bajo la key
   `mecanografia-progress`.
@@ -49,7 +48,7 @@ src/
     Modal.tsx          # overlay genérico (backdrop + card animada)
     NameModal.tsx       # pide el nombre al primer ingreso
     ConfirmModal.tsx    # confirmación genérica (usado para reset de progreso)
-    ThemeToggle.tsx      # selector de 3 posiciones (Claro/Oscuro/Mixto), en el header
+    ThemeToggle.tsx      # selector de 2 posiciones (Claro/Oscuro), en el header
     ProgressDashboard.tsx # dashboard de /progreso: stats + gráfica Recharts de WPM por nivel
     VirtualKeyboard.tsx  # teclado en pantalla, resalta la siguiente tecla a escribir
   hooks/
@@ -118,19 +117,15 @@ src/
   diseño (title/message/confirmLabel/cancelLabel/onConfirm/onCancel) porque
   ya se usa para el reset de progreso y es el patrón natural para cualquier
   acción destructiva futura.
-- **Sistema de temas (Claro / Oscuro / Mixto)**: tres clases mutuamente
-  excluyentes en `<html>` — sin clase (Claro), `.dark`, o `.theme-mixed`.
-  `tailwind.config.mjs` define `darkMode: 'class'` y un plugin
-  (`addVariant('mixed', ':is(.theme-mixed) &')`) que hace que `mixed:*` se
-  comporte igual que `dark:*` pero atado a `.theme-mixed`. Persistencia en
-  `localStorage['theme-preference']` (`'light' | 'dark' | 'mixed'`).
-  - **Reparto de color en "Mixto"**: el fondo principal se queda claro
-    (`bg-stone-100`, sin overrides `mixed:`); solo las superficies "flotantes"
-    — header, footer, panel de niveles, píldoras de stats, área de escritura,
-    overlay de resultados y los 3 modales — llevan `mixed:bg-slate-800/900`
-    con texto claro. El título del nivel activo, instrucciones y barra de
-    progreso se dejan sin `mixed:` a propósito porque están sobre el fondo
-    principal, no dentro de una "tarjeta".
+- **Sistema de temas (Claro / Oscuro)**: una sola clase en `<html>` — sin
+  clase (Claro) o `.dark` (Oscuro). `tailwind.config.mjs` define
+  `darkMode: 'class'`; no hay plugins propios. Persistencia en
+  `localStorage['theme-preference']` (`'light' | 'dark'`).
+  - Hubo un tercer tema ("Mixto", fondo claro + superficies flotantes
+    oscuras vía una variante `mixed:` custom) que se quitó por completo a
+    petición del usuario — si aparece código o documentación mencionando
+    `mixed`/`theme-mixed`/`Mixto`, es resto sin limpiar de esa época, no
+    algo a reintroducir.
   - **Script anti-FOUC** en `Layout.astro`, primera etiqueta dentro de
     `<head>` (`<script is:inline>`): lee `theme-preference` y aplica la
     clase a `<html>` antes del primer paint. Está duplicado a propósito en
@@ -170,10 +165,10 @@ src/
   - `useIsDarkSurface()` (hook local al componente): arranca en `false` y
     sincroniza vía `MutationObserver` sobre la clase de `<html>`, mismo
     patrón que `ThemeToggle` para evitar el hydration mismatch — necesario
-    porque Recharts pinta en SVG y ahí las clases `dark:`/`mixed:` de
-    Tailwind no aplican; el grid, los ejes y el aro de los puntos necesitan
-    color explícito en JS. El tooltip sí es HTML normal, así que ese usa
-    clases `dark:`/`mixed:` como el resto de la UI.
+    porque Recharts pinta en SVG y ahí las clases `dark:` de Tailwind no
+    aplican; el grid, los ejes y el aro de los puntos necesitan color
+    explícito en JS. El tooltip sí es HTML normal, así que ese usa clases
+    `dark:` como el resto de la UI.
   - Sombreado de fondo (`ReferenceArea`) por tier a opacidad muy baja (6%)
     solo da contexto cronológico; no compite como color identitario, por eso
     no pasó por la validación de paleta categórica.

@@ -51,11 +51,10 @@ function Confetti() {
 const DASH = '–';
 
 const CHAR_STYLES: Record<string, string> = {
-  pending: 'text-slate-400 dark:text-slate-500 mixed:text-slate-500',
-  correct: 'text-emerald-600 dark:text-emerald-400 mixed:text-emerald-400',
-  incorrect: 'text-rose-400 bg-rose-100/60 rounded-sm dark:bg-rose-900/40 mixed:bg-rose-900/40',
-  current:
-    'text-slate-700 border-b-2 border-teal-500 animate-pulse dark:text-slate-100 mixed:text-slate-100',
+  pending: 'text-slate-400 dark:text-slate-500',
+  correct: 'text-emerald-600 dark:text-emerald-400',
+  incorrect: 'text-rose-400 bg-rose-100/60 rounded-sm dark:bg-rose-900/40',
+  current: 'text-slate-700 border-b-2 border-teal-500 animate-pulse dark:text-slate-100',
 };
 
 function TypedText({ target, charStates }: { target: string; charStates: string[] }) {
@@ -72,11 +71,11 @@ function TypedText({ target, charStates }: { target: string; charStates: string[
 
 function StatPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col items-center rounded-xl bg-white/60 px-4 py-2 shadow-sm dark:bg-slate-800/60 mixed:bg-slate-800/60">
-      <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mixed:text-slate-400">
+    <div className="flex flex-col items-center rounded-xl bg-white/60 px-4 py-2 shadow-sm dark:bg-slate-800/60">
+      <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {label}
       </span>
-      <span className="font-mono text-lg font-semibold text-slate-700 dark:text-slate-100 mixed:text-slate-100">
+      <span className="font-mono text-lg font-semibold text-slate-700 dark:text-slate-100">
         {value}
       </span>
     </div>
@@ -115,10 +114,10 @@ function LevelSelector({
                   className={cn(
                     'relative aspect-square rounded-lg text-sm font-mono transition-colors',
                     isActive
-                      ? 'bg-slate-700 text-white shadow-md dark:bg-teal-600 mixed:bg-teal-600'
+                      ? 'bg-slate-700 text-white shadow-md dark:bg-teal-600'
                       : isUnlocked
-                        ? 'bg-white/70 text-slate-600 hover:bg-slate-200 dark:bg-slate-700/70 dark:text-slate-200 dark:hover:bg-slate-600 mixed:bg-slate-700/70 mixed:text-slate-200 mixed:hover:bg-slate-600'
-                        : 'cursor-not-allowed bg-slate-100 text-slate-300 dark:bg-slate-800 dark:text-slate-600 mixed:bg-slate-800 mixed:text-slate-600',
+                        ? 'bg-white/70 text-slate-600 hover:bg-slate-200 dark:bg-slate-700/70 dark:text-slate-200 dark:hover:bg-slate-600'
+                        : 'cursor-not-allowed bg-slate-100 text-slate-300 dark:bg-slate-800 dark:text-slate-600',
                   )}
                 >
                   {level.subLevel}
@@ -157,25 +156,23 @@ function ResultsOverlay({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-100/90 backdrop-blur-sm dark:bg-slate-900/90 mixed:bg-slate-900/90"
+      className="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-100/90 backdrop-blur-sm dark:bg-slate-900/90"
     >
       {result.passed && <Confetti />}
       <motion.div
         initial={{ opacity: 0, y: 12, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="w-full max-w-sm rounded-2xl bg-white/80 p-6 text-center shadow-lg dark:bg-slate-800/90 mixed:bg-slate-800/90"
+        className="w-full max-w-sm rounded-2xl bg-white/80 p-6 text-center shadow-lg dark:bg-slate-800/90"
       >
         <p
           className={`text-sm font-semibold uppercase tracking-wide ${
-            result.passed
-              ? 'text-emerald-600 dark:text-emerald-400 mixed:text-emerald-400'
-              : 'text-rose-400'
+            result.passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-400'
           }`}
         >
           {result.passed ? 'Nivel superado' : 'Sigue practicando'}
         </p>
-        <h2 className="mt-1 text-2xl font-bold text-slate-700 dark:text-slate-100 mixed:text-slate-100">
+        <h2 className="mt-1 text-2xl font-bold text-slate-700 dark:text-slate-100">
           {level.title}
         </h2>
 
@@ -185,14 +182,14 @@ function ResultsOverlay({
           <StatPill label="Errores" value={String(result.errors)} />
         </div>
 
-        <p className="mt-4 text-xs text-slate-500 dark:text-slate-400 mixed:text-slate-400">
+        <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
           Objetivo: {level.minWpm} WPM &middot; {level.minAccuracy}% precisión
         </p>
 
         <div className="mt-6 flex justify-center gap-3">
           <button
             onClick={onRetry}
-            className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 mixed:bg-slate-700 mixed:text-slate-200 mixed:hover:bg-slate-600"
+            className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
           >
             Reintentar
           </button>
@@ -298,15 +295,13 @@ export default function TypingGame() {
       </AnimatePresence>
 
       <aside className="w-full shrink-0 lg:w-72">
-        <div className="rounded-2xl bg-slate-200/60 p-4 dark:bg-slate-800/60 mixed:bg-slate-800/60">
+        <div className="rounded-2xl bg-slate-200/60 p-4 dark:bg-slate-800/60">
           {playerName && (
-            <p className="mb-3 text-sm text-slate-600 dark:text-slate-300 mixed:text-slate-300">
+            <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
               Hola, <span className="font-semibold">{playerName}</span>
             </p>
           )}
-          <h2 className="mb-3 text-sm font-semibold text-slate-600 dark:text-slate-300 mixed:text-slate-300">
-            Niveles
-          </h2>
+          <h2 className="mb-3 text-sm font-semibold text-slate-600 dark:text-slate-300">Niveles</h2>
           <LevelSelector
             activeLevel={activeLevel}
             unlockedLevelId={unlockedLevelId}
@@ -316,7 +311,7 @@ export default function TypingGame() {
 
           <button
             onClick={() => setShowResetConfirm(true)}
-            className="mt-5 w-full rounded-lg bg-white/70 px-4 py-2 text-sm font-medium text-rose-400 transition-colors hover:bg-rose-50 dark:bg-slate-700/70 dark:hover:bg-rose-950/40 mixed:bg-slate-700/70 mixed:hover:bg-rose-950/40"
+            className="mt-5 w-full rounded-lg bg-white/70 px-4 py-2 text-sm font-medium text-rose-400 transition-colors hover:bg-rose-50 dark:bg-slate-700/70 dark:hover:bg-rose-950/40"
           >
             Reiniciar progreso
           </button>
@@ -367,7 +362,7 @@ export default function TypingGame() {
 
         <div
           onClick={() => inputRef.current?.focus()}
-          className="relative min-h-[220px] rounded-2xl bg-white/50 p-8 ring-teal-400 focus-within:ring-2 dark:bg-slate-800/50 mixed:bg-slate-800/50"
+          className="relative min-h-[220px] rounded-2xl bg-white/50 p-8 ring-teal-400 focus-within:ring-2 dark:bg-slate-800/50"
         >
           <input
             ref={inputRef}
@@ -403,7 +398,7 @@ export default function TypingGame() {
           </AnimatePresence>
 
           {status === 'idle' && (
-            <p className="mt-4 text-xs text-slate-400 dark:text-slate-500 mixed:text-slate-500">
+            <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
               Haz clic aquí y empieza a escribir para iniciar el cronómetro.
             </p>
           )}

@@ -14,7 +14,7 @@ export default function Modal({ children }: { children: ReactNode }) {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 8, scale: 0.98 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="w-full max-w-sm rounded-2xl bg-stone-100 p-6 shadow-xl dark:bg-slate-800 mixed:bg-slate-800"
+        className="w-full max-w-sm rounded-2xl bg-stone-100 p-6 shadow-xl dark:bg-slate-800"
       >
         {children}
       </motion.div>
