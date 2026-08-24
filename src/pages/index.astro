@@ -1,0 +1,13 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import TypingGame from '@/components/TypingGame';
+---
+
+<Layout>
+  <header class="mx-auto max-w-6xl px-6 pt-10 text-center">
+    <h1 class="text-3xl font-bold text-slate-700">Domina el teclado</h1>
+    <p class="mt-2 text-slate-500">40 subniveles, del ASDF a los fragmentos de código real.</p>
+  </header>
+
+  <TypingGame client:load />
+</Layout>
