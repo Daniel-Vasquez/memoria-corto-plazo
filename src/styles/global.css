@@ -4,5 +4,5 @@
 
 html,
 body {
-  @apply bg-stone-100;
+  @apply bg-stone-100 dark:bg-slate-900;
 }

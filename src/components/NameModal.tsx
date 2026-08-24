@@ -14,8 +14,12 @@ export default function NameModal({ onSubmit }: { onSubmit: (name: string) => vo
   return (
     <Modal>
       <form onSubmit={handleSubmit}>
-        <h2 className="text-xl font-bold text-slate-700">¡Bienvenido a Mecanografía!</h2>
-        <p className="mt-1 text-sm text-slate-500">¿Cómo te llamas? Usaremos tu nombre para guardar tu progreso.</p>
+        <h2 className="text-xl font-bold text-slate-700 dark:text-slate-100 mixed:text-slate-100">
+          ¡Bienvenido a Mecanografía!
+        </h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 mixed:text-slate-400">
+          ¿Cómo te llamas? Usaremos tu nombre para guardar tu progreso.
+        </p>
 
         <input
           autoFocus
@@ -24,7 +28,7 @@ export default function NameModal({ onSubmit }: { onSubmit: (name: string) => vo
           onChange={(event) => setName(event.target.value)}
           placeholder="Tu nombre"
           maxLength={30}
-          className="mt-4 w-full rounded-lg border border-slate-300 bg-white/70 px-3 py-2 font-mono text-slate-700 outline-none focus:ring-2 focus:ring-teal-400"
+          className="mt-4 w-full rounded-lg border border-slate-300 bg-white/70 px-3 py-2 font-mono text-slate-700 outline-none focus:ring-2 focus:ring-teal-400 dark:border-slate-600 dark:bg-slate-700/70 dark:text-slate-100 mixed:border-slate-600 mixed:bg-slate-700/70 mixed:text-slate-100"
         />
 
         <button

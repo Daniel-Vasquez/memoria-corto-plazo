@@ -12,11 +12,27 @@ const { title = 'Mecanografía · Practica tu velocidad' } = Astro.props;
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <script is:inline>
+      // Anti-FOUC: aplica el tema guardado antes del primer paint.
+      // Debe ser código inline y autónomo (no puede importar src/lib/theme.ts),
+      // pero comparte la misma clave/valores que ese módulo.
+      (function () {
+        var STORAGE_KEY = 'theme-preference';
+        var theme = 'light';
+        try {
+          var stored = localStorage.getItem(STORAGE_KEY);
+          if (stored === 'light' || stored === 'dark' || stored === 'mixed') theme = stored;
+        } catch (e) {}
+        var root = document.documentElement;
+        if (theme === 'dark') root.classList.add('dark');
+        else if (theme === 'mixed') root.classList.add('theme-mixed');
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
   </head>
-  <body class="min-h-screen bg-stone-100 text-slate-700 antialiased">
+  <body class="min-h-screen bg-stone-100 text-slate-700 antialiased transition-colors dark:bg-slate-900 dark:text-slate-100">
     <slot />
   </body>
 </html>
