@@ -1,12 +1,52 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LEVELS, TIERS, pickRandomText } from '@/data/levels';
 import { useGameStore } from '@/store/useGameStore';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import NameModal from '@/components/NameModal';
 import ConfirmModal from '@/components/ConfirmModal';
+import VirtualKeyboard from '@/components/VirtualKeyboard';
 import { cn } from '@/lib/cn';
 import type { Level, LevelResult } from '@/types/game';
+
+const CONFETTI_COLORS = ['#0d9488', '#059669', '#f59e0b', '#38bdf8', '#f43f5e'];
+
+function Confetti() {
+  const shouldReduceMotion = useReducedMotion();
+
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, i) => {
+        const angle = (i / 14) * Math.PI * 2 + Math.random() * 0.4;
+        const distance = 60 + Math.random() * 50;
+        return {
+          id: i,
+          x: Math.cos(angle) * distance,
+          y: Math.sin(angle) * distance - 20,
+          color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+          delay: Math.random() * 0.15,
+        };
+      }),
+    [],
+  );
+
+  if (shouldReduceMotion) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+      {pieces.map((piece) => (
+        <motion.span
+          key={piece.id}
+          className="absolute h-2 w-2 rounded-sm"
+          style={{ backgroundColor: piece.color }}
+          initial={{ opacity: 1, x: 0, y: 0, scale: 0.6, rotate: 0 }}
+          animate={{ opacity: 0, x: piece.x, y: piece.y, scale: 1, rotate: 180 }}
+          transition={{ duration: 0.7, delay: piece.delay, ease: 'easeOut' }}
+        />
+      ))}
+    </div>
+  );
+}
 
 const DASH = '–';
 
@@ -119,6 +159,7 @@ function ResultsOverlay({
       exit={{ opacity: 0 }}
       className="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-100/90 backdrop-blur-sm dark:bg-slate-900/90 mixed:bg-slate-900/90"
     >
+      {result.passed && <Confetti />}
       <motion.div
         initial={{ opacity: 0, y: 12, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -237,6 +278,9 @@ export default function TypingGame() {
     const typedCount = charStates.filter((s) => s !== 'pending' && s !== 'current').length;
     return Math.round((typedCount / total) * 100);
   }, [charStates, target]);
+
+  const nextIndex = charStates.indexOf('current');
+  const nextChar = nextIndex === -1 ? undefined : target[nextIndex];
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6 lg:flex-row">
@@ -375,6 +419,8 @@ export default function TypingGame() {
             )}
           </AnimatePresence>
         </div>
+
+        <VirtualKeyboard nextChar={nextChar} />
       </main>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { playKeySound } from '@/lib/keySound';
 import type { CharState } from '@/types/game';
 
 interface TypingStats {
@@ -82,6 +83,7 @@ export function useTypingEngine(
         const isCorrect = event.key === target[index];
         totalKeystrokesRef.current += 1;
         if (isCorrect) correctKeystrokesRef.current += 1;
+        playKeySound(isCorrect);
         const next = prev + event.key;
 
         if (next.length === target.length) {

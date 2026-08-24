@@ -18,6 +18,12 @@ guía (ASDF JKL;) hasta fragmentos de código real (HTML/JS/CSS/SQL).
   resultados y modales).
 - **Recharts** para el dashboard de progreso (`/progreso`) — único chart lib
   del proyecto, montada en una isla React igual que el resto.
+- **Vitest** + **Testing Library** (`@testing-library/react`) para tests de
+  hooks (jsdom vía `vitest.config.ts`). Cobertura hoy limitada a
+  `useTypingEngine` — es la única pieza de lógica pura y crítica del
+  proyecto.
+- **Web Audio API nativa** (`src/lib/keySound.ts`) para el feedback sonoro
+  por pulsación — sin librería externa (ni howler.js ni similares).
 
 ## Comandos
 
@@ -27,7 +33,12 @@ npm run build    # astro check && astro build
 npx astro check  # solo diagnósticos TS
 npm run lint     # eslint .
 npm run format   # prettier --write .
+npm run test     # vitest run
 ```
+
+Hook de pre-commit (`husky` + `lint-staged`, configurado en `.lintstagedrc.json`):
+corre `eslint --fix` + `prettier --write` sobre los archivos staged en cada
+`git commit`. Se instala solo al correr `npm install` (script `prepare`).
 
 ## Estructura
 
@@ -40,12 +51,15 @@ src/
     ConfirmModal.tsx    # confirmación genérica (usado para reset de progreso)
     ThemeToggle.tsx      # selector de 3 posiciones (Claro/Oscuro/Mixto), en el header
     ProgressDashboard.tsx # dashboard de /progreso: stats + gráfica Recharts de WPM por nivel
+    VirtualKeyboard.tsx  # teclado en pantalla, resalta la siguiente tecla a escribir
   hooks/
-    useTypingEngine.ts # captura keydown, calcula WPM/precisión, char states
+    useTypingEngine.ts      # captura keydown, calcula WPM/precisión, char states
+    useTypingEngine.test.ts # tests (Vitest + Testing Library) del cálculo de WPM/precisión
   lib/
     theme.ts             # tipo Theme + read/apply/persist en localStorage,
                           # compartido por ThemeToggle y (duplicado, ver abajo) el script anti-FOUC
     cn.ts                 # helper de clases condicionales (join de strings), sin dependencia externa
+    keySound.ts            # feedback sonoro (Web Audio API) por tecla correcta/incorrecta
   store/
     useGameStore.ts    # Zustand + persist: playerName, unlockedLevelId,
                         # bestResults, completeLevel, resetProgress
@@ -200,6 +214,27 @@ src/
   ese preset). `npm run format` solo se corrió sobre los archivos tocados en
   la sesión que introdujo esta configuración, no sobre todo el repo — ver
   "Pendiente" más abajo.
+- **`playKeySound()` se llama dentro del updater de `setTyped`, junto a los
+  contadores de keystrokes** (`useTypingEngine.ts`): no es el patrón más
+  "puro" para un hook, pero es exactamente el único punto donde ya se
+  calcula `isCorrect` por pulsación, y el hook ya tenía efectos secundarios
+  ahí (mutar refs). `playKeySound()` es un no-op seguro en SSR/tests
+  (`getAudioContext()` devuelve `null` si `window.AudioContext` no existe),
+  por eso los tests de Vitest no necesitan mockearlo.
+- **Confetti en `ResultsOverlay` respeta `prefers-reduced-motion`**: usa
+  `useReducedMotion()` de Framer Motion y no renderiza nada si el usuario lo
+  tiene activado, en vez de solo bajar la duración de la animación.
+- **`VirtualKeyboard` no es un layout físico real**: el set de teclas
+  (`LETTER_ROWS` + `PUNCTUATION_KEYS`) se sacó a mano de los caracteres que
+  de verdad aparecen en `data/levels.ts` (incluye símbolos de código del
+  tier master: `` ` ``, `$`, `{`, `[`, etc.), no de un teclado QWERTY
+  estándar completo. `TypingGame` deriva `nextChar` buscando el índice
+  `'current'` en `charStates` (`target[nextIndex]`); no hay estado nuevo, es
+  un dato ya calculado por `useTypingEngine`.
+- **Vitest necesita `@types/node`** aunque el resto del proyecto no lo usa:
+  `vitest.config.ts` importa `node:path` y usa `__dirname` para resolver el
+  alias `@`, y `astro check` (que corre `tsc` sobre `**/*` del repo) fallaba
+  sin esos tipos.
 
 ## Gotchas conocidos
 
@@ -227,7 +262,11 @@ src/
   `astro.config.mjs` con el dominio real de producción antes de que valga la
   pena instalarlo.
 - `npm run format` no se ha corrido sobre todo el repo, solo sobre los
-  archivos tocados al introducir ESLint/Prettier — falta un commit dedicado
-  solo a formateo para no mezclarlo con cambios funcionales.
-- Sin hook de pre-commit (`husky`/`lint-staged`) que corra lint/format
-  automáticamente; hoy `npm run lint`/`npm run format` son manuales.
+  archivos tocados en las sesiones que introdujeron ESLint/Prettier y las
+  piezas de Nivel Medio — falta un commit dedicado solo a formateo para no
+  mezclarlo con cambios funcionales.
+- Analítica de producto (Plausible/Umami) sin añadir — pendiente a propósito,
+  es el único punto del "Nivel Medio" de la hoja de ruta que no se
+  implementó (implica elegir y desplegar un servicio externo).
+- `useTypingEngine.test.ts` cubre el cálculo de WPM/precisión; no hay tests
+  de componentes (`TypingGame`, `ProgressDashboard`) ni end-to-end.
