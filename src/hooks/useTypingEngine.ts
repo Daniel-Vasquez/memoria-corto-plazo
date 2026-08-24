@@ -18,7 +18,11 @@ interface UseTypingEngineResult {
 
 const WORD_LENGTH = 5;
 
-export function useTypingEngine(target: string, onFinish: (stats: TypingStats, errorCount: number) => void): UseTypingEngineResult {
+export function useTypingEngine(
+  target: string,
+  onFinish: (stats: TypingStats, errorCount: number) => void,
+  enabled = true
+): UseTypingEngineResult {
   const [typed, setTyped] = useState('');
   const [status, setStatus] = useState<'idle' | 'running' | 'finished'>('idle');
   const [now, setNow] = useState(0);
@@ -102,9 +106,10 @@ export function useTypingEngine(target: string, onFinish: (stats: TypingStats, e
   );
 
   useEffect(() => {
+    if (!enabled) return;
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  }, [handleKeyDown, enabled]);
 
   const charStates = useMemo<CharState[]>(() => {
     return target.split('').map((char, index) => {

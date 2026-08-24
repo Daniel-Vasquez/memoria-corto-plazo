@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { LEVELS, TIERS, pickRandomText } from '@/data/levels';
 import { useGameStore } from '@/store/useGameStore';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
+import NameModal from '@/components/NameModal';
+import ConfirmModal from '@/components/ConfirmModal';
 import type { Level, LevelResult } from '@/types/game';
 
 const CHAR_STYLES: Record<string, string> = {
@@ -138,13 +140,17 @@ function ResultsOverlay({
 }
 
 export default function TypingGame() {
+  const playerName = useGameStore((state) => state.playerName);
+  const setPlayerName = useGameStore((state) => state.setPlayerName);
   const unlockedLevelId = useGameStore((state) => state.unlockedLevelId);
   const completeLevel = useGameStore((state) => state.completeLevel);
+  const resetProgress = useGameStore((state) => state.resetProgress);
 
   const [activeLevel, setActiveLevel] = useState<Level>(LEVELS[0]);
   const [target, setTarget] = useState<string>(() => pickRandomText(LEVELS[0]));
   const [lastResult, setLastResult] = useState<LevelResult | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleFinish = useCallback(
@@ -164,7 +170,8 @@ export default function TypingGame() {
     [activeLevel, completeLevel]
   );
 
-  const { charStates, status, stats } = useTypingEngine(target, handleFinish);
+  const typingEnabled = Boolean(playerName) && !showResetConfirm;
+  const { charStates, status, stats } = useTypingEngine(target, handleFinish, typingEnabled);
 
   const selectLevel = useCallback((level: Level) => {
     setActiveLevel(level);
@@ -186,6 +193,12 @@ export default function TypingGame() {
     if (next) selectLevel(next);
   }, [activeLevel, selectLevel]);
 
+  const confirmResetProgress = useCallback(() => {
+    resetProgress();
+    setShowResetConfirm(false);
+    selectLevel(LEVELS[0]);
+  }, [resetProgress, selectLevel]);
+
   const progressPercent = useMemo(() => {
     const total = target.length || 1;
     const typedCount = charStates.filter((s) => s !== 'pending' && s !== 'current').length;
@@ -194,10 +207,35 @@ export default function TypingGame() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6 lg:flex-row">
+      <AnimatePresence>{!playerName && <NameModal onSubmit={setPlayerName} />}</AnimatePresence>
+      <AnimatePresence>
+        {showResetConfirm && (
+          <ConfirmModal
+            title="Reiniciar progreso"
+            message="Se perderá tu nivel desbloqueado y tus mejores resultados. Esta acción no se puede deshacer."
+            confirmLabel="Sí, reiniciar"
+            onConfirm={confirmResetProgress}
+            onCancel={() => setShowResetConfirm(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <aside className="w-full shrink-0 lg:w-72">
         <div className="rounded-2xl bg-slate-200/60 p-4">
+          {playerName && (
+            <p className="mb-3 text-sm text-slate-600">
+              Hola, <span className="font-semibold">{playerName}</span>
+            </p>
+          )}
           <h2 className="mb-3 text-sm font-semibold text-slate-600">Niveles</h2>
           <LevelSelector activeLevel={activeLevel} unlockedLevelId={unlockedLevelId} onSelect={selectLevel} />
+
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="mt-5 w-full rounded-lg bg-white/70 px-4 py-2 text-sm font-medium text-rose-400 transition-colors hover:bg-rose-50"
+          >
+            Reiniciar progreso
+          </button>
         </div>
       </aside>
 
