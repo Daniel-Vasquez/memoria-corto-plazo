@@ -7,6 +7,8 @@ import NameModal from '@/components/NameModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import type { Level, LevelResult } from '@/types/game';
 
+const DASH = '–';
+
 const CHAR_STYLES: Record<string, string> = {
   pending: 'text-slate-400',
   correct: 'text-emerald-600',
@@ -38,10 +40,12 @@ function StatPill({ label, value }: { label: string; value: string }) {
 function LevelSelector({
   activeLevel,
   unlockedLevelId,
+  bestResults,
   onSelect,
 }: {
   activeLevel: Level;
   unlockedLevelId: number;
+  bestResults: Record<number, LevelResult>;
   onSelect: (level: Level) => void;
 }) {
   return (
@@ -53,13 +57,15 @@ function LevelSelector({
             {LEVELS.filter((level) => level.tier === tier.id).map((level) => {
               const isUnlocked = level.id <= unlockedLevelId;
               const isActive = level.id === activeLevel.id;
+              const best = bestResults[level.id];
               return (
                 <button
                   key={level.id}
                   disabled={!isUnlocked}
                   onClick={() => onSelect(level)}
+                  title={best ? `${best.wpm} WPM · ${best.accuracy}%` : undefined}
                   className={[
-                    'aspect-square rounded-lg text-sm font-mono transition-colors',
+                    'relative aspect-square rounded-lg text-sm font-mono transition-colors',
                     isActive
                       ? 'bg-slate-700 text-white shadow-md'
                       : isUnlocked
@@ -68,6 +74,14 @@ function LevelSelector({
                   ].join(' ')}
                 >
                   {level.subLevel}
+                  {best && (
+                    <span
+                      className={[
+                        'absolute right-1 top-1 h-1.5 w-1.5 rounded-full',
+                        best.passed ? 'bg-emerald-500' : 'bg-rose-400',
+                      ].join(' ')}
+                    />
+                  )}
                 </button>
               );
             })}
@@ -143,6 +157,7 @@ export default function TypingGame() {
   const playerName = useGameStore((state) => state.playerName);
   const setPlayerName = useGameStore((state) => state.setPlayerName);
   const unlockedLevelId = useGameStore((state) => state.unlockedLevelId);
+  const bestResults = useGameStore((state) => state.bestResults);
   const completeLevel = useGameStore((state) => state.completeLevel);
   const resetProgress = useGameStore((state) => state.resetProgress);
 
@@ -199,6 +214,8 @@ export default function TypingGame() {
     selectLevel(LEVELS[0]);
   }, [resetProgress, selectLevel]);
 
+  const bestResult = bestResults[activeLevel.id];
+
   const progressPercent = useMemo(() => {
     const total = target.length || 1;
     const typedCount = charStates.filter((s) => s !== 'pending' && s !== 'current').length;
@@ -228,7 +245,12 @@ export default function TypingGame() {
             </p>
           )}
           <h2 className="mb-3 text-sm font-semibold text-slate-600">Niveles</h2>
-          <LevelSelector activeLevel={activeLevel} unlockedLevelId={unlockedLevelId} onSelect={selectLevel} />
+          <LevelSelector
+            activeLevel={activeLevel}
+            unlockedLevelId={unlockedLevelId}
+            bestResults={bestResults}
+            onSelect={selectLevel}
+          />
 
           <button
             onClick={() => setShowResetConfirm(true)}
@@ -244,10 +266,21 @@ export default function TypingGame() {
           <div>
             <h1 className="text-xl font-bold text-slate-700">{activeLevel.title}</h1>
             <p className="text-sm text-slate-500">{activeLevel.instructions}</p>
+            {bestResult && (
+              <p className={`mt-1 text-xs font-medium ${bestResult.passed ? 'text-emerald-600' : 'text-rose-400'}`}>
+                {bestResult.passed ? 'Nivel superado' : 'Aún no superado'}
+              </p>
+            )}
           </div>
           <div className="flex gap-3">
-            <StatPill label="WPM" value={String(stats.wpm)} />
-            <StatPill label="Precisión" value={`${stats.accuracy}%`} />
+            <StatPill
+              label={status === 'idle' ? 'Mejor WPM' : 'WPM'}
+              value={status === 'idle' ? String(bestResult?.wpm ?? DASH) : String(stats.wpm)}
+            />
+            <StatPill
+              label={status === 'idle' ? 'Mejor precisión' : 'Precisión'}
+              value={status === 'idle' ? (bestResult ? `${bestResult.accuracy}%` : DASH) : `${stats.accuracy}%`}
+            />
           </div>
         </div>
 
