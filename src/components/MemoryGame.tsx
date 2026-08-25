@@ -71,8 +71,9 @@ const FONT_SIZE_OPTIONS: { value: FontSize; label: string }[] = [
 function MemorizeText({ target, fontSize }: { target: string; fontSize: FontSize }) {
   return (
     <p
+      onCopy={(event) => event.preventDefault()}
       className={cn(
-        'font-mono leading-relaxed tracking-wide whitespace-pre-wrap break-words text-slate-700 dark:text-slate-100',
+        'select-none font-mono leading-relaxed tracking-wide whitespace-pre-wrap break-words text-slate-700 dark:text-slate-100',
         FONT_SIZE_CLASSES[fontSize],
       )}
     >
@@ -393,10 +394,13 @@ export default function MemoryGame() {
     submit,
   } = useMemoryEngine(target, handleFinish, engineEnabled);
 
-  useEffect(() => {
-    if (phase === 'recalling') inputRef.current?.focus();
-  }, [phase]);
-
+  // No usamos un efecto keyed en [phase] para enfocar el textarea al entrar
+  // a "recalling": el motion.div de esa fase usa `mode="wait"`, así que su
+  // montaje real en el DOM queda retrasado hasta que termina la animación
+  // de salida de la fase anterior — un efecto disparado en el mismo tick que
+  // cambia `phase` encontraría `inputRef.current` todavía en null. El
+  // atributo `autoFocus` del textarea (abajo) sí se dispara justo cuando el
+  // nodo queda montado, así que enfoca correctamente sin necesitar clic.
   const selectLevel = useCallback((level: Level) => {
     setActiveLevel(level);
     setTarget(generateRandomPattern(level.tier, level.subLevel));
@@ -615,7 +619,9 @@ export default function MemoryGame() {
                     value={typed}
                     onChange={(event) => updateTyped(event.target.value)}
                     onKeyDown={handleTextareaKeyDown}
+                    onPaste={(event) => event.preventDefault()}
                     disabled={phase !== 'recalling' || !engineEnabled}
+                    autoFocus={phase === 'recalling'}
                     rows={3}
                     inputMode="text"
                     autoComplete="off"

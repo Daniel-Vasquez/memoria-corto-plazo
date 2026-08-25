@@ -213,6 +213,28 @@ hay margen de error definido por tier (`minAccuracy` sube de 85% en Básico a
   resetea sus fases cuando `target` cambia (por eso nunca regenera el patrón
   por su cuenta), y no puede regenerarlo mientras el jugador escribe o
   valida porque no tiene ninguna referencia a `generateRandomPattern`.
+- **El textarea de `recalling` se enfoca solo con el atributo `autoFocus`,
+  no con un `useEffect` keyed en `[phase]`**: la primera versión usaba
+  `useEffect(() => { if (phase === 'recalling') inputRef.current?.focus();
+  }, [phase])`, pero nunca funcionaba — el `motion.div` que envuelve cada
+  fase usa `<AnimatePresence mode="wait">`, así que cuando `phase` pasa a
+  `'recalling'` el textarea todavía no existe en el DOM: `mode="wait"`
+  primero corre la animación de salida de la fase anterior (~200ms) y solo
+  después monta el nuevo `motion.div`. El efecto se disparaba en el mismo
+  tick que cambiaba `phase`, antes de ese montaje, así que `inputRef.current`
+  era `null` y el jugador tenía que hacer click a mano en el textarea para
+  poder escribir. `autoFocus={phase === 'recalling'}` no tiene ese problema
+  porque se dispara en el momento real en que el nodo se monta, sin importar
+  cuánto se demore `AnimatePresence`. `inputRef` se mantiene para el caso de
+  `handleContainerClick` (click manual en el contenedor mientras ya se está
+  en `recalling`, para reenfocar si el jugador perdió el foco).
+- **`MemorizeText` bloquea copiar el patrón, y el textarea de `recalling`
+  bloquea pegar** (`MemoryGame.tsx`): `onCopy={(e) => e.preventDefault()}` +
+  `select-none` en el `<p>` que muestra el patrón durante `memorizing`, y
+  `onPaste={(e) => e.preventDefault()}` en el `<textarea>` de `recalling`.
+  No es una protección infalible (devtools sigue pudiendo leer el DOM), pero
+  cubre el camino obvio de "seleccionar y copiar" o "pegar lo que copié
+  antes" — hacer trampa así rompería el sentido del ejercicio de memoria.
 - **El input de la fase `recalling` es un `<textarea>` visible y
   controlado, no un input invisible con captura de `keydown` en `window`**:
   el motor de mecanografía anterior usaba un `<input>` `sr-only` y escuchaba
