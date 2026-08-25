@@ -15,7 +15,7 @@ export default function NameModal({ onSubmit }: { onSubmit: (name: string) => vo
     <Modal>
       <form onSubmit={handleSubmit}>
         <h2 className="text-xl font-bold text-slate-700 dark:text-slate-100">
-          ¡Bienvenido a Mecanografía!
+          ¡Bienvenido al juego de Memoria!
         </h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           ¿Cómo te llamas? Usaremos tu nombre para guardar tu progreso.

@@ -37,6 +37,6 @@ export const useGameStore = create<GameState>()(
         }),
       resetProgress: () => set({ unlockedLevelId: 1, bestResults: {} }),
     }),
-    { name: 'mecanografia-progress' }
-  )
+    { name: 'memoria-corto-plazo-progress' },
+  ),
 );

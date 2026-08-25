@@ -51,24 +51,72 @@ const MEDIO_TEXTS: string[][] = [
   ['La Paz es la capital', 'El Rio Amazonas es largo', 'Bogota tiene montañas'],
   ['Cocinar Desayunar Almorzar', 'Trabajar Estudiar Aprender', 'Escribir Leer Practicar'],
   ['Programar Diseñar Construir', 'Aventura Montaña Bosque', 'Tecnologia Innovacion Futuro'],
-  ['El Programador Escribe Codigo', 'La Diseñadora Crea Interfaces', 'El Estudiante Practica Todos'],
-  ['Biblioteca Universidad Escuela', 'Restaurante Hospital Mercado', 'Aeropuerto Estacion Terminal'],
+  [
+    'El Programador Escribe Codigo',
+    'La Diseñadora Crea Interfaces',
+    'El Estudiante Practica Todos',
+  ],
+  [
+    'Biblioteca Universidad Escuela',
+    'Restaurante Hospital Mercado',
+    'Aeropuerto Estacion Terminal',
+  ],
   ['Barcelona Valencia Sevilla', 'Santiago Caracas Guatemala', 'Habana Quito Asuncion'],
-  ['Felicidad Esperanza Confianza', 'Creatividad Perseverancia Disciplina', 'Curiosidad Paciencia Constancia'],
-  ['Hoy Aprendemos Mecanografia', 'Nuestro Objetivo Es Mejorar', 'Cada Practica Suma Progreso'],
+  [
+    'Felicidad Esperanza Confianza',
+    'Creatividad Perseverancia Disciplina',
+    'Curiosidad Paciencia Constancia',
+  ],
+  ['Hoy Entrenamos La Memoria', 'Nuestro Objetivo Es Mejorar', 'Cada Practica Suma Progreso'],
 ];
 
 const AVANZADO_TEXTS: string[][] = [
   ['1234567890', '13 57 90 24 68', '12 de marzo de 2026'],
-  ['Tengo 25 años y vivo en el piso 3.', 'El examen es el 14 de abril.', 'Compré 10 manzanas y 5 peras.'],
-  ['Hola, ¿cómo estás? Muy bien, gracias.', '¡Qué día tan bonito hace hoy!', '¿Vienes a la fiesta el sábado?'],
-  ['El niño comió pan, queso y jamón.', 'María, José y Andrés llegaron tarde.', 'Ayer llovió; hoy hace sol.'],
-  ['El café cuesta $2.50 con impuesto.', 'La reunión es a las 9:30 a.m.', 'El descuento es del 15% hoy.'],
-  ['"La práctica hace al maestro", dijo ella.', 'Compramos: pan, leche, huevos y café.', 'Él preguntó: ¿ya terminaste la tarea?'],
-  ['El número de teléfono es 555-01-23.', 'La dirección es Calle 45 #12-30.', 'El código postal es 28013.'],
-  ['Según el informe, el 82% aprobó el curso.', 'La empresa creció un 7,4% este año.', 'El vuelo sale a las 06:45 del aeropuerto.'],
-  ['La rápida práctica mejora la precisión.', 'Ñoño comió ñame con mañana serena.', 'El águila voló sobre la montaña.'],
-  ['"El tiempo, decía Séneca, es lo único que no se puede recuperar."', 'La ecuación es: 3x + 7 = 22, despeja x.', 'Su email es contacto@empresa.com; responde pronto.'],
+  [
+    'Tengo 25 años y vivo en el piso 3.',
+    'El examen es el 14 de abril.',
+    'Compré 10 manzanas y 5 peras.',
+  ],
+  [
+    'Hola, ¿cómo estás? Muy bien, gracias.',
+    '¡Qué día tan bonito hace hoy!',
+    '¿Vienes a la fiesta el sábado?',
+  ],
+  [
+    'El niño comió pan, queso y jamón.',
+    'María, José y Andrés llegaron tarde.',
+    'Ayer llovió; hoy hace sol.',
+  ],
+  [
+    'El café cuesta $2.50 con impuesto.',
+    'La reunión es a las 9:30 a.m.',
+    'El descuento es del 15% hoy.',
+  ],
+  [
+    '"La práctica hace al maestro", dijo ella.',
+    'Compramos: pan, leche, huevos y café.',
+    'Él preguntó: ¿ya terminaste la tarea?',
+  ],
+  [
+    'El número de teléfono es 555-01-23.',
+    'La dirección es Calle 45 #12-30.',
+    'El código postal es 28013.',
+  ],
+  [
+    'Según el informe, el 82% aprobó el curso.',
+    'La empresa creció un 7,4% este año.',
+    'El vuelo sale a las 06:45 del aeropuerto.',
+  ],
+  [
+    'La rápida práctica mejora la precisión.',
+    'Ñoño comió ñame con mañana serena.',
+    'El águila voló sobre la montaña.',
+  ],
+  [
+    '"El tiempo, decía Séneca, es lo único que no se puede recuperar."',
+    'La ecuación es: 3x + 7 = 22, despeja x.',
+    'Su email es contacto@empresa.com; responde pronto.',
+  ],
 ];
 
 const MASTER_TEXTS: string[][] = [
@@ -124,7 +172,13 @@ const MASTER_TEXTS: string[][] = [
   ],
 ];
 
-function buildTier(tier: Tier, startId: number, pools: string[][], minWpm: [number, number], minAcc: [number, number]): Level[] {
+function buildTier(
+  tier: Tier,
+  startId: number,
+  pools: string[][],
+  minWpm: [number, number],
+  minAcc: [number, number],
+): Level[] {
   const [wpmStart, wpmEnd] = minWpm;
   const [accStart, accEnd] = minAcc;
   return pools.map((texts, index) => {
@@ -151,14 +205,14 @@ function tierInstructions(tier: Tier, subLevel: number): string {
   switch (tier) {
     case 'basico':
       return subLevel <= 4
-        ? 'Coloca los dedos en la fila guía (ASDF JKL;) y repite sin mirar el teclado.'
-        : 'Escribe palabras cortas manteniendo los dedos en la fila guía.';
+        ? 'Memoriza estos caracteres de la fila guía (ASDF JKL;) y reescríbelos cuando desaparezcan.'
+        : 'Memoriza estas palabras cortas y repítelas de memoria.';
     case 'medio':
-      return 'Usa Shift para las mayúsculas iniciales y cubre todo el abecedario.';
+      return 'Memoriza el texto completo, incluidas las mayúsculas, y reescríbelo de memoria.';
     case 'avanzado':
-      return 'Incluye números y signos de puntuación con precisión.';
+      return 'Memoriza números y signos de puntuación con precisión.';
     case 'master':
-      return 'Escribe párrafos y código real respetando símbolos especiales.';
+      return 'Memoriza párrafos y fragmentos de código real, incluidos los símbolos especiales.';
   }
 }
 

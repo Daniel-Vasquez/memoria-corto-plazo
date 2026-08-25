@@ -1,6 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import TypingGame from '@/components/TypingGame';
+import MemoryGame from '@/components/MemoryGame';
 import ThemeToggle from '@/components/ThemeToggle';
 ---
 
@@ -10,9 +10,9 @@ import ThemeToggle from '@/components/ThemeToggle';
   >
     <div class="mx-auto flex max-w-6xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
       <div class="text-center sm:text-left">
-        <h1 class="text-3xl font-bold text-slate-700 dark:text-slate-100">Domina el teclado</h1>
+        <h1 class="text-3xl font-bold text-slate-700 dark:text-slate-100">Entrena tu memoria</h1>
         <p class="mt-1 text-slate-500 dark:text-slate-400">
-          40 subniveles, del ASDF a los fragmentos de código real.
+          40 subniveles: memoriza el texto y reescríbelo de memoria cuando desaparezca.
         </p>
       </div>
       <div class="flex items-center gap-3">
@@ -27,11 +27,13 @@ import ThemeToggle from '@/components/ThemeToggle';
     </div>
   </header>
 
-  <TypingGame client:load />
+  <MemoryGame client:load />
 
   <footer
     class="mt-10 border-t border-transparent px-6 py-6 text-center text-sm text-slate-500 transition-colors dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
   >
-    <p>Hecho para practicar mecanografía · tu progreso se guarda solo en este navegador.</p>
+    <p>
+      Hecho para entrenar la memoria a corto plazo · tu progreso se guarda solo en este navegador.
+    </p>
   </footer>
 </Layout>

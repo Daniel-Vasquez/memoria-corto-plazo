@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LEVELS, TIERS, pickRandomText } from '@/data/levels';
 import { useGameStore } from '@/store/useGameStore';
-import { useTypingEngine } from '@/hooks/useTypingEngine';
+import { useMemoryEngine } from '@/hooks/useMemoryEngine';
 import NameModal from '@/components/NameModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import { cn } from '@/lib/cn';
 import { readStoredFontSize, persistFontSize, type FontSize } from '@/lib/fontSize';
-import type { Level, LevelResult } from '@/types/game';
+import type { CharState, Level, LevelResult } from '@/types/game';
 
 const CONFETTI_COLORS = ['#0d9488', '#059669', '#f59e0b', '#38bdf8', '#f43f5e'];
 
@@ -50,11 +50,9 @@ function Confetti() {
 
 const DASH = '–';
 
-const CHAR_STYLES: Record<string, string> = {
-  pending: 'text-slate-400 dark:text-slate-500',
+const CHAR_STYLES: Record<CharState, string> = {
   correct: 'text-emerald-600 dark:text-emerald-400',
-  incorrect: 'text-rose-400 bg-rose-100/60 rounded-sm dark:bg-rose-900/40',
-  current: 'text-slate-700 border-b-2 border-teal-500 animate-pulse dark:text-slate-100',
+  incorrect: 'text-rose-500 bg-rose-100/60 rounded-sm dark:bg-rose-900/40',
 };
 
 const FONT_SIZE_CLASSES: Record<FontSize, string> = {
@@ -69,28 +67,75 @@ const FONT_SIZE_OPTIONS: { value: FontSize; label: string }[] = [
   { value: 'large', label: 'Grande' },
 ];
 
-function TypedText({
+function MemorizeText({ target, fontSize }: { target: string; fontSize: FontSize }) {
+  return (
+    <p
+      className={cn(
+        'font-mono leading-relaxed tracking-wide whitespace-pre-wrap break-words text-slate-700 dark:text-slate-100',
+        FONT_SIZE_CLASSES[fontSize],
+      )}
+    >
+      {target}
+    </p>
+  );
+}
+
+/** Compara typed contra target: colorea lo que el jugador escribió, y marca
+ * en el texto original los caracteres que se quedaron sin escribir. */
+function DiffView({
+  typed,
   target,
   charStates,
   fontSize,
 }: {
+  typed: string;
   target: string;
-  charStates: string[];
+  charStates: CharState[];
   fontSize: FontSize;
 }) {
+  const missing = target.length > typed.length;
   return (
-    <p
-      className={cn(
-        'font-mono leading-relaxed tracking-wide whitespace-pre-wrap break-words',
-        FONT_SIZE_CLASSES[fontSize],
-      )}
-    >
-      {target.split('').map((char, index) => (
-        <span key={index} className={CHAR_STYLES[charStates[index]]}>
-          {char === ' ' ? ' ' : char}
-        </span>
-      ))}
-    </p>
+    <div className="space-y-3 text-left">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          Lo que escribiste
+        </p>
+        <p
+          className={cn(
+            'font-mono leading-relaxed tracking-wide whitespace-pre-wrap break-words',
+            FONT_SIZE_CLASSES[fontSize],
+          )}
+        >
+          {typed.length === 0 ? (
+            <span className="text-slate-400 dark:text-slate-500">(nada)</span>
+          ) : (
+            typed.split('').map((char, index) => (
+              <span key={index} className={CHAR_STYLES[charStates[index] ?? 'incorrect']}>
+                {char === ' ' ? ' ' : char}
+              </span>
+            ))
+          )}
+        </p>
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          Texto original
+        </p>
+        <p
+          className={cn(
+            'font-mono leading-relaxed tracking-wide whitespace-pre-wrap break-words text-slate-500 dark:text-slate-400',
+            FONT_SIZE_CLASSES[fontSize],
+          )}
+        >
+          {target}
+        </p>
+        {missing && (
+          <p className="mt-1 text-xs text-rose-500">
+            Te faltaron {target.length - typed.length} caracteres por escribir.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -205,11 +250,19 @@ function LevelSelector({
 function ResultsOverlay({
   result,
   level,
+  typed,
+  target,
+  charStates,
+  fontSize,
   onRetry,
   onNext,
 }: {
   result: LevelResult;
   level: Level;
+  typed: string;
+  target: string;
+  charStates: CharState[];
+  fontSize: FontSize;
   onRetry: () => void;
   onNext: () => void;
 }) {
@@ -219,14 +272,14 @@ function ResultsOverlay({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-100/90 backdrop-blur-sm dark:bg-slate-900/90"
+      className="absolute inset-0 overflow-y-auto rounded-2xl bg-slate-100/95 backdrop-blur-sm dark:bg-slate-900/95"
     >
       {result.passed && <Confetti />}
       <motion.div
         initial={{ opacity: 0, y: 12, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="w-full max-w-sm rounded-2xl bg-white/80 p-6 text-center shadow-lg dark:bg-slate-800/90"
+        className="mx-auto my-6 w-full max-w-md rounded-2xl bg-white/80 p-6 text-center shadow-lg dark:bg-slate-800/90"
       >
         <p
           className={`text-sm font-semibold uppercase tracking-wide ${
@@ -249,6 +302,10 @@ function ResultsOverlay({
           Objetivo: {level.minWpm} WPM &middot; {level.minAccuracy}% precisión
         </p>
 
+        <div className="mt-5 rounded-xl bg-slate-100/70 p-4 dark:bg-slate-900/40">
+          <DiffView typed={typed} target={target} charStates={charStates} fontSize={fontSize} />
+        </div>
+
         <div className="mt-6 flex justify-center gap-3">
           <button
             onClick={onRetry}
@@ -270,7 +327,7 @@ function ResultsOverlay({
   );
 }
 
-export default function TypingGame() {
+export default function MemoryGame() {
   const playerName = useGameStore((state) => state.playerName);
   const setPlayerName = useGameStore((state) => state.setPlayerName);
   const unlockedLevelId = useGameStore((state) => state.unlockedLevelId);
@@ -283,7 +340,8 @@ export default function TypingGame() {
   const [lastResult, setLastResult] = useState<LevelResult | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Igual que ThemeToggle: Astro pre-renderiza este componente en el
   // servidor sin acceso a localStorage, así que arrancamos en null (mismo
@@ -317,22 +375,33 @@ export default function TypingGame() {
     [activeLevel, completeLevel],
   );
 
-  const typingEnabled = Boolean(playerName) && !showResetConfirm;
-  const { charStates, status, stats } = useTypingEngine(target, handleFinish, typingEnabled);
+  const engineEnabled = Boolean(playerName) && !showResetConfirm;
+  const {
+    phase,
+    typed,
+    memorizeDurationMs,
+    memorizeMsLeft,
+    charStates,
+    start,
+    updateTyped,
+    submit,
+  } = useMemoryEngine(target, handleFinish, engineEnabled);
+
+  useEffect(() => {
+    if (phase === 'recalling') inputRef.current?.focus();
+  }, [phase]);
 
   const selectLevel = useCallback((level: Level) => {
     setActiveLevel(level);
     setTarget(pickRandomText(level));
     setLastResult(null);
     setAttempt((n) => n + 1);
-    inputRef.current?.focus();
   }, []);
 
   const retry = useCallback(() => {
     setTarget(pickRandomText(activeLevel));
     setLastResult(null);
     setAttempt((n) => n + 1);
-    inputRef.current?.focus();
   }, [activeLevel]);
 
   const goNext = useCallback(() => {
@@ -348,11 +417,45 @@ export default function TypingGame() {
 
   const bestResult = bestResults[activeLevel.id];
 
+  const handleContainerClick = useCallback(() => {
+    if (!engineEnabled) return;
+    if (phase === 'idle') start();
+    if (phase === 'recalling') inputRef.current?.focus();
+  }, [engineEnabled, phase, start]);
+
+  const handleTextareaKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        submit();
+      }
+    },
+    [submit],
+  );
+
   const progressPercent = useMemo(() => {
-    const total = target.length || 1;
-    const typedCount = charStates.filter((s) => s !== 'pending' && s !== 'current').length;
-    return Math.round((typedCount / total) * 100);
-  }, [charStates, target]);
+    if (phase === 'memorizing') {
+      return Math.round((memorizeMsLeft / memorizeDurationMs) * 100);
+    }
+    if (phase === 'recalling' || phase === 'finished') {
+      const total = target.length || 1;
+      return Math.min(100, Math.round((typed.length / total) * 100));
+    }
+    return 0;
+  }, [phase, memorizeMsLeft, memorizeDurationMs, typed, target]);
+
+  const memorizeSecondsLeft = Math.ceil(memorizeMsLeft / 1000);
+
+  const liveAnnouncement = useMemo(() => {
+    if (lastResult) {
+      return lastResult.passed
+        ? `Nivel superado. ${lastResult.wpm} palabras por minuto, ${lastResult.accuracy}% de precisión.`
+        : `Aún no superado. ${lastResult.wpm} palabras por minuto, ${lastResult.accuracy}% de precisión.`;
+    }
+    if (phase === 'memorizing') return 'Memoriza el texto en pantalla.';
+    if (phase === 'recalling') return 'Escribe de memoria lo que acabas de ver.';
+    return '';
+  }, [lastResult, phase]);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6 lg:flex-row">
@@ -412,17 +515,17 @@ export default function TypingGame() {
           </div>
           <div className="flex gap-3">
             <StatPill
-              label={status === 'idle' ? 'Mejor WPM' : 'WPM'}
-              value={status === 'idle' ? String(bestResult?.wpm ?? DASH) : String(stats.wpm)}
+              label={lastResult ? 'WPM' : 'Mejor WPM'}
+              value={lastResult ? String(lastResult.wpm) : String(bestResult?.wpm ?? DASH)}
             />
             <StatPill
-              label={status === 'idle' ? 'Mejor precisión' : 'Precisión'}
+              label={lastResult ? 'Precisión' : 'Mejor precisión'}
               value={
-                status === 'idle'
-                  ? bestResult
+                lastResult
+                  ? `${lastResult.accuracy}%`
+                  : bestResult
                     ? `${bestResult.accuracy}%`
                     : DASH
-                  : `${stats.accuracy}%`
               }
             />
           </div>
@@ -430,7 +533,10 @@ export default function TypingGame() {
 
         <div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
           <div
-            className="h-full rounded-full bg-teal-500 transition-all duration-150"
+            className={cn(
+              'h-full rounded-full transition-all duration-150',
+              phase === 'memorizing' ? 'bg-amber-500' : 'bg-teal-500',
+            )}
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -440,53 +546,105 @@ export default function TypingGame() {
         </div>
 
         <div
-          onClick={() => inputRef.current?.focus()}
+          ref={containerRef}
+          onClick={handleContainerClick}
           className="relative min-h-[220px] rounded-2xl bg-white/50 p-8 ring-teal-400 focus-within:ring-2 dark:bg-slate-800/50"
         >
-          <input
-            ref={inputRef}
-            type="text"
-            inputMode="text"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            aria-label="Área de escritura del ejercicio"
-            disabled={!typingEnabled}
-            className="sr-only"
-          />
-
           <div aria-live="polite" className="sr-only">
-            {lastResult
-              ? lastResult.passed
-                ? `Nivel superado. ${lastResult.wpm} palabras por minuto, ${lastResult.accuracy}% de precisión.`
-                : `Aún no superado. ${lastResult.wpm} palabras por minuto, ${lastResult.accuracy}% de precisión.`
-              : ''}
+            {liveAnnouncement}
           </div>
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={`${activeLevel.id}-${attempt}`}
+              key={`${activeLevel.id}-${attempt}-${phase}`}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.2 }}
             >
-              <TypedText target={target} charStates={charStates} fontSize={fontSize ?? 'medium'} />
+              {phase === 'idle' && (
+                <div>
+                  <p className="mb-4 text-xs text-slate-400 dark:text-slate-500">
+                    Vas a memorizar este texto durante {Math.ceil(memorizeDurationMs / 1000)}{' '}
+                    segundos. Cuando desaparezca, lo reescribirás de memoria.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={start}
+                    disabled={!engineEnabled}
+                    className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    Memorizar
+                  </button>
+                  <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+                    O simplemente pulsa cualquier tecla para empezar.
+                  </p>
+                </div>
+              )}
+
+              {phase === 'memorizing' && (
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-500/90 px-2 font-mono text-xs font-semibold text-white">
+                      {memorizeSecondsLeft}s
+                    </span>
+                    <span className="text-xs font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                      Memorizando…
+                    </span>
+                  </div>
+                  <MemorizeText target={target} fontSize={fontSize ?? 'medium'} />
+                </div>
+              )}
+
+              {(phase === 'recalling' || phase === 'finished') && (
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="text-xs font-medium uppercase tracking-wide text-teal-600 dark:text-teal-400">
+                      Escribe de memoria lo que acabas de ver
+                    </span>
+                  </div>
+                  <textarea
+                    ref={inputRef}
+                    value={typed}
+                    onChange={(event) => updateTyped(event.target.value)}
+                    onKeyDown={handleTextareaKeyDown}
+                    disabled={phase !== 'recalling' || !engineEnabled}
+                    rows={3}
+                    inputMode="text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    aria-label="Escribe aquí lo que recuerdas del texto"
+                    placeholder="Escribe aquí…"
+                    className={cn(
+                      'w-full resize-none rounded-xl border border-slate-300 bg-white/80 p-3 font-mono leading-relaxed tracking-wide text-slate-700 outline-none focus:ring-2 focus:ring-teal-400 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-700/70 dark:text-slate-100',
+                      FONT_SIZE_CLASSES[fontSize ?? 'medium'],
+                    )}
+                  />
+                  {phase === 'recalling' && (
+                    <button
+                      type="button"
+                      onClick={submit}
+                      className="mt-3 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700"
+                    >
+                      Comprobar
+                    </button>
+                  )}
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
-
-          {status === 'idle' && (
-            <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
-              Haz clic aquí y empieza a escribir para iniciar el cronómetro.
-            </p>
-          )}
 
           <AnimatePresence>
             {lastResult && (
               <ResultsOverlay
                 result={lastResult}
                 level={activeLevel}
+                typed={typed}
+                target={target}
+                charStates={charStates}
+                fontSize={fontSize ?? 'medium'}
                 onRetry={retry}
                 onNext={goNext}
               />

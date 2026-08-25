@@ -32,4 +32,5 @@ export interface LevelResult {
   passed: boolean;
 }
 
-export type CharState = 'pending' | 'correct' | 'incorrect' | 'current';
+/** Resultado de comparar, carácter a carácter, lo escrito de memoria contra el texto original. */
+export type CharState = 'correct' | 'incorrect';
