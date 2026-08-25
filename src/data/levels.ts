@@ -32,17 +32,20 @@ export const TIERS: TierMeta[] = [
  * progresiva. El motor del juego elige aleatoriamente un texto del pool
  * del subnivel activo para variar la práctica en cada intento.
  */
+// Básico: un solo token corto por variante (máx. 6 caracteres, sin
+// espacios) — memorizar y reescribir una palabra completa es más fiel a
+// "memoria a corto plazo" que una frase larga con espacios de por medio.
 const BASICO_TEXTS: string[][] = [
-  ['asdf jkl; asdf jkl;', 'asa sds dfd fjf jkj kl;', 'fj fj dk dk sl sl a; a;'],
-  ['as df jk l; asdf jkl;', 'jak sal fads klas dal', 'ja ka la sa da fa'],
-  ['asa asa dsd dsd fjf fjf', 'salada dasa flask jalk', 'ala kasa fasa dala'],
-  ['gasa halas jalas kasal', 'gala hada gafa jala', 'has gas jas kas las'],
-  ['gato pato lado dedo', 'sala falda dalia gala', 'jade lago dato saga'],
-  ['casa mesa nube foca', 'vida rama cine polo', 'copa nudo lija mano'],
-  ['perro gato oso pez', 'sol luna mar rio', 'flor hoja tren pan'],
-  ['limon manzana pera uva', 'silla mesa cama puerta', 'nube cielo tierra fuego'],
-  ['viento lluvia nieve calor', 'tigre leon lobo zorro', 'verde azul rojo gris'],
-  ['el gato duerme en la cama', 'ella toma sopa con pan', 'el sol calienta la tierra'],
+  ['asdf', 'jkl;', 'asa'],
+  ['klas', 'fads', 'jak'],
+  ['salada', 'kasa', 'dala'],
+  ['halas', 'jalas', 'kasal'],
+  ['dalia', 'falda', 'jade'],
+  ['nube', 'rama', 'lija'],
+  ['perro', 'luna', 'tren'],
+  ['limon', 'silla', 'cielo'],
+  ['viento', 'zorro', 'verde'],
+  ['duerme', 'cama', 'sopa'],
 ];
 
 const MEDIO_TEXTS: string[][] = [
