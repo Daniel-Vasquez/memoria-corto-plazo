@@ -5,7 +5,6 @@ import { useGameStore } from '@/store/useGameStore';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import NameModal from '@/components/NameModal';
 import ConfirmModal from '@/components/ConfirmModal';
-import VirtualKeyboard from '@/components/VirtualKeyboard';
 import { cn } from '@/lib/cn';
 import { readStoredFontSize, persistFontSize, type FontSize } from '@/lib/fontSize';
 import type { Level, LevelResult } from '@/types/game';
@@ -355,9 +354,6 @@ export default function TypingGame() {
     return Math.round((typedCount / total) * 100);
   }, [charStates, target]);
 
-  const nextIndex = charStates.indexOf('current');
-  const nextChar = nextIndex === -1 ? undefined : target[nextIndex];
-
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6 lg:flex-row">
       <AnimatePresence>{!playerName && <NameModal onSubmit={setPlayerName} />}</AnimatePresence>
@@ -497,8 +493,6 @@ export default function TypingGame() {
             )}
           </AnimatePresence>
         </div>
-
-        <VirtualKeyboard nextChar={nextChar} />
       </main>
     </div>
   );

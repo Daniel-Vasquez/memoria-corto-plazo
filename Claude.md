@@ -50,7 +50,6 @@ src/
     ConfirmModal.tsx    # confirmación genérica (usado para reset de progreso)
     ThemeToggle.tsx      # selector de 2 posiciones (Claro/Oscuro), en el header
     ProgressDashboard.tsx # dashboard de /progreso: stats + gráfica Recharts de WPM por nivel
-    VirtualKeyboard.tsx  # teclado en pantalla, resalta la siguiente tecla a escribir
   hooks/
     useTypingEngine.ts      # captura keydown, calcula WPM/precisión, char states
     useTypingEngine.test.ts # tests (Vitest + Testing Library) del cálculo de WPM/precisión
@@ -219,13 +218,6 @@ src/
 - **Confetti en `ResultsOverlay` respeta `prefers-reduced-motion`**: usa
   `useReducedMotion()` de Framer Motion y no renderiza nada si el usuario lo
   tiene activado, en vez de solo bajar la duración de la animación.
-- **`VirtualKeyboard` no es un layout físico real**: el set de teclas
-  (`LETTER_ROWS` + `PUNCTUATION_KEYS`) se sacó a mano de los caracteres que
-  de verdad aparecen en `data/levels.ts` (incluye símbolos de código del
-  tier master: `` ` ``, `$`, `{`, `[`, etc.), no de un teclado QWERTY
-  estándar completo. `TypingGame` deriva `nextChar` buscando el índice
-  `'current'` en `charStates` (`target[nextIndex]`); no hay estado nuevo, es
-  un dato ya calculado por `useTypingEngine`.
 - **Vitest necesita `@types/node`** aunque el resto del proyecto no lo usa:
   `vitest.config.ts` importa `node:path` y usa `__dirname` para resolver el
   alias `@`, y `astro check` (que corre `tsc` sobre `**/*` del repo) fallaba
