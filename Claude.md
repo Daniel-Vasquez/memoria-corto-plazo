@@ -1,9 +1,10 @@
 # Memoria a corto plazo
 
 Juego web de memoria a corto plazo con 40 subniveles (4 tiers × 10): se
-muestra un texto o patrón durante unos segundos, desaparece, y el jugador
-debe reescribirlo de memoria. Va de la fila guía (ASDF JKL;) hasta
-fragmentos de código real (HTML/JS/CSS/SQL).
+genera un patrón de caracteres aleatorio, se muestra en pantalla durante
+unos segundos, desaparece, y el jugador debe reescribirlo de memoria. Va de
+patrones cortos de minúsculas hasta patrones largos con letras, números y
+símbolos.
 
 Es un pivote de un proyecto anterior de mecanografía (typing test) — la UI,
 el store, los niveles y el dashboard de progreso vienen de ahí, pero la
@@ -12,6 +13,15 @@ luego reescribe de memoria". Si aparece código o documentación mencionando
 `TypingGame`, `useTypingEngine`, o "mecanografía"/"escribir rápido", es
 resto sin limpiar de esa época — la app ya no mide velocidad de copiado, mide
 recuerdo.
+
+El contenido a memorizar tampoco es texto curado: hasta una sesión posterior
+al pivote, cada subnivel tenía 3 variantes de texto estáticas (fila guía,
+palabras en español, fragmentos de código real HTML/JS/CSS/SQL). Se
+reemplazó por `generateRandomPattern()` (`src/lib/patternGenerator.ts`), que
+genera un patrón de caracteres nuevo en cada intento — ver "Generación de
+patrones" más abajo. Si aparece código o documentación mencionando
+`pickRandomText`, `BASICO_TEXTS`/`MEDIO_TEXTS`/`AVANZADO_TEXTS`/`MASTER_TEXTS`,
+o el campo `Level.texts`, es resto sin limpiar de esa época también.
 
 ## Stack
 
@@ -29,8 +39,8 @@ recuerdo.
   del proyecto, montada en una isla React igual que el resto.
 - **Vitest** + **Testing Library** (`@testing-library/react`) para tests de
   hooks (jsdom vía `vitest.config.ts`). Cobertura hoy limitada a
-  `useMemoryEngine` — es la única pieza de lógica pura y crítica del
-  proyecto.
+  `useMemoryEngine` y `generateRandomPattern` — son las dos piezas de lógica
+  pura y crítica del proyecto.
 - **Web Audio API nativa** (`src/lib/keySound.ts`) para el feedback sonoro
   por pulsación durante la fase de recuerdo — sin librería externa (ni
   howler.js ni similares).
@@ -73,11 +83,16 @@ src/
     cn.ts                 # helper de clases condicionales (join de strings), sin dependencia externa
     keySound.ts            # feedback sonoro (Web Audio API) durante la fase de recuerdo
     fontSize.ts            # tipo FontSize + read/persist en localStorage
+    patternGenerator.ts       # generateRandomPattern(tier, subLevel): pool de caracteres
+                               # y longitud escalan con la dificultad
+    patternGenerator.test.ts  # tests de pools/longitud/espacios por tier
   store/
     useGameStore.ts    # Zustand + persist: playerName, unlockedLevelId,
                         # bestResults, completeLevel, resetProgress
   data/
-    levels.ts           # genera los 40 Level a partir de pools de texto por tier
+    levels.ts           # genera los 40 Level (metadata: id, tier, subLevel, minWpm,
+                         # minAccuracy) — ya no contiene el contenido a memorizar,
+                         # eso lo genera generateRandomPattern() en tiempo real
   types/
     game.ts              # Tier, Level, LevelResult, CharState
   layouts/Layout.astro   # <head> con el script anti-FOUC de temas
@@ -88,10 +103,10 @@ src/
 
 ## Modelo de datos
 
-- `Level`: `{ id, tier, subLevel, title, instructions, texts[], minWpm, minAccuracy }`.
-  `texts` es un pool; `pickRandomText(level)` elige uno al azar en cada intento.
-  Sin cambios respecto al proyecto de mecanografía original: los mismos pools
-  de texto sirven como contenido a memorizar.
+- `Level`: `{ id, tier, subLevel, title, instructions, minWpm, minAccuracy }`.
+  Ya no tiene un campo `texts[]` — el contenido a memorizar se genera en
+  tiempo real con `generateRandomPattern(level.tier, level.subLevel)` (ver
+  "Generación de patrones" abajo), no se guarda en `Level`.
 - `LevelResult`: `{ levelId, wpm, accuracy, errors, durationMs, passed }` — el
   shape no cambió (así el dashboard de `/progreso` sigue funcionando sin
   tocarlo), pero el significado de cada campo se recalculó para la nueva
@@ -129,13 +144,43 @@ src/
 Cambiar `target` (nuevo subnivel o reintento) resetea el hook a `idle`,
 igual que el motor anterior reseteaba al cambiar de texto.
 
+### Generación de patrones (`generateRandomPattern`)
+
+`src/lib/patternGenerator.ts` reemplazó las cadenas estáticas curadas
+(`BASICO_TEXTS`, fragmentos de código, etc.) por `generateRandomPattern(tier,
+subLevel)`, que arma un patrón carácter a carácter:
+
+- **Pool de caracteres por tier** (`CHAR_POOLS`): `basico` = solo minúsculas;
+  `medio` = minúsculas + mayúsculas + dígitos; `avanzado`/`master` = eso más
+  símbolos (`!@#$%^&*()-_=+[]{};:,.<>/?`).
+- **Longitud por tier** (`LENGTH_RANGES`): un rango `[min, max]` que se
+  interpola linealmente entre subnivel 1 y 10 — mismo patrón matemático que
+  `minWpm`/`minAccuracy` en `buildTier()` (`data/levels.ts`). `basico` va de
+  4 a 6 caracteres; el resto de tiers escala más arriba (`medio` 7-12,
+  `avanzado` 12-18, `master` 18-28).
+- **Espacios** (`SPACE_PROBABILITY`): probabilidad de insertar un espacio
+  entre caracteres para simular saltos de "palabra" — pero **`basico` se
+  mantiene en 0** a propósito. Una petición explícita de una sesión anterior
+  fijó ese tier en patrones cortos y sin espacios (para que memorizar una
+  sola palabra corta, no una frase, sea la unidad de práctica); esta función
+  respeta esa decisión en vez de aplicarle la probabilidad general del resto
+  de tiers. Cuando se genera un espacio, nunca es el primer ni el último
+  carácter, ni se genera dos veces seguidas.
+- Devuelve un `string` plano — el resto del juego (`MemoryGame.tsx`,
+  `useMemoryEngine`, `DiffView`) no distingue entre un patrón generado y una
+  cadena estática, así que no necesitaron cambios más allá de dónde se llama
+  a la función generadora.
+
 ### Tiempo de memorización dinámico
 
 `getMemorizeDurationMs(target)` en `useMemoryEngine.ts`:
 `clamp(3000, 9000, 2200 + target.length * 90)`. Crece con la longitud del
-texto (los fragmentos de código del tier Master consiguen más tiempo que las
-palabras cortas del tier Básico) pero se mantiene siempre en el rango
-~3-9 segundos pedido — nunca instantáneo, nunca interminable.
+patrón (los patrones largos del tier Master consiguen más tiempo que los
+cortos del tier Básico) pero se mantiene siempre en el rango ~3-9 segundos
+pedido — nunca instantáneo, nunca interminable. Como la longitud ahora la
+decide `generateRandomPattern()` (ver arriba) en vez de un texto curado a
+mano, el tiempo de memorización sigue escalando con la dificultad sin
+necesitar ningún cambio en esta función.
 
 ### Condición de victoria
 
@@ -159,6 +204,15 @@ hay margen de error definido por tier (`minAccuracy` sube de 85% en Básico a
 
 ## Decisiones de diseño (por qué está así)
 
+- **`generateRandomPattern()` se llama solo en `useState(() => ...)` (carga
+  inicial) y dentro de `selectLevel`/`retry` en `MemoryGame.tsx`** — nunca en
+  el cuerpo del componente ni en un `useMemo` disparado por cambios de fase.
+  `target` es un `useState` plano que solo cambia por esas dos vías
+  imperativas, así que el patrón generado se mantiene estable durante todo
+  el intento (memorizing → recalling → finished); `useMemoryEngine` solo
+  resetea sus fases cuando `target` cambia (por eso nunca regenera el patrón
+  por su cuenta), y no puede regenerarlo mientras el jugador escribe o
+  valida porque no tiene ninguna referencia a `generateRandomPattern`.
 - **El input de la fase `recalling` es un `<textarea>` visible y
   controlado, no un input invisible con captura de `keydown` en `window`**:
   el motor de mecanografía anterior usaba un `<input>` `sr-only` y escuchaba
@@ -336,12 +390,16 @@ hay margen de error definido por tier (`minAccuracy` sube de 85% en Básico a
 
 ## Pendiente / ideas no implementadas
 
-- El contenido de `levels.ts` tiene solo 3 variantes de texto por subnivel
-  como demostración de la estructura — falta ampliar/curar el pool real de
-  los 40 niveles. Los textos son los mismos que usaba el proyecto de
-  mecanografía original (siguen sirviendo como contenido a memorizar), salvo
-  el único que mencionaba "Mecanografia" explícitamente (medio/subnivel 10),
-  reemplazado.
+- Los pools de caracteres, rangos de longitud y probabilidad de espacios de
+  `patternGenerator.ts` (`CHAR_POOLS`, `LENGTH_RANGES`, `SPACE_PROBABILITY`)
+  son valores iniciales razonables, no números validados con jugadores
+  reales — puede hacer falta ajustarlos (sobre todo la longitud máxima de
+  `avanzado`/`master`, 18-28 caracteres, que en fuentes grandes puede
+  memorizarse muy difícil en el tiempo que da `getMemorizeDurationMs`).
+- Los patrones aleatorios no son pronunciables ni tienen significado (a
+  diferencia de las palabras/código curados que reemplazaron) — no se evaluó
+  si eso afecta la experiencia para lectores de pantalla más allá del
+  `aria-live` que ya anuncia fase/resultado.
 - No se decidió si `resetProgress()` debería tener una variante que también
   borre `playerName` (por ahora, no lo hace).
 - Sitemap (`@astrojs/sitemap`) sin añadir: falta definir `site` en

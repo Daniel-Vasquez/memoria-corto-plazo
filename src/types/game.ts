@@ -15,8 +15,6 @@ export interface Level {
   subLevel: number;
   title: string;
   instructions: string;
-  /** Pool of texts the engine can pick from for this subnivel */
-  texts: string[];
   /** Minimum words-per-minute required to pass */
   minWpm: number;
   /** Minimum accuracy percentage (0-100) required to pass */

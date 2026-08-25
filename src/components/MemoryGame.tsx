@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { LEVELS, TIERS, pickRandomText } from '@/data/levels';
+import { LEVELS, TIERS } from '@/data/levels';
+import { generateRandomPattern } from '@/lib/patternGenerator';
 import { useGameStore } from '@/store/useGameStore';
 import { useMemoryEngine } from '@/hooks/useMemoryEngine';
 import NameModal from '@/components/NameModal';
@@ -336,7 +337,12 @@ export default function MemoryGame() {
   const resetProgress = useGameStore((state) => state.resetProgress);
 
   const [activeLevel, setActiveLevel] = useState<Level>(LEVELS[0]);
-  const [target, setTarget] = useState<string>(() => pickRandomText(LEVELS[0]));
+  // Se genera una sola vez por intento (acá, y en selectLevel/retry más
+  // abajo) — nunca dentro de un render ni durante memorizing/recalling —
+  // para que el patrón se mantenga estable mientras dura el intento.
+  const [target, setTarget] = useState<string>(() =>
+    generateRandomPattern(LEVELS[0].tier, LEVELS[0].subLevel),
+  );
   const [lastResult, setLastResult] = useState<LevelResult | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -393,13 +399,13 @@ export default function MemoryGame() {
 
   const selectLevel = useCallback((level: Level) => {
     setActiveLevel(level);
-    setTarget(pickRandomText(level));
+    setTarget(generateRandomPattern(level.tier, level.subLevel));
     setLastResult(null);
     setAttempt((n) => n + 1);
   }, []);
 
   const retry = useCallback(() => {
-    setTarget(pickRandomText(activeLevel));
+    setTarget(generateRandomPattern(activeLevel.tier, activeLevel.subLevel));
     setLastResult(null);
     setAttempt((n) => n + 1);
   }, [activeLevel]);
