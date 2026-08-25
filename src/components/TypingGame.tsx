@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LEVELS, TIERS, pickRandomText } from '@/data/levels';
 import { useGameStore } from '@/store/useGameStore';
@@ -7,6 +7,7 @@ import NameModal from '@/components/NameModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import VirtualKeyboard from '@/components/VirtualKeyboard';
 import { cn } from '@/lib/cn';
+import { readStoredFontSize, persistFontSize, type FontSize } from '@/lib/fontSize';
 import type { Level, LevelResult } from '@/types/game';
 
 const CONFETTI_COLORS = ['#0d9488', '#059669', '#f59e0b', '#38bdf8', '#f43f5e'];
@@ -57,15 +58,78 @@ const CHAR_STYLES: Record<string, string> = {
   current: 'text-slate-700 border-b-2 border-teal-500 animate-pulse dark:text-slate-100',
 };
 
-function TypedText({ target, charStates }: { target: string; charStates: string[] }) {
+const FONT_SIZE_CLASSES: Record<FontSize, string> = {
+  small: 'text-base sm:text-lg',
+  medium: 'text-xl sm:text-2xl',
+  large: 'text-2xl sm:text-3xl',
+};
+
+const FONT_SIZE_OPTIONS: { value: FontSize; label: string }[] = [
+  { value: 'small', label: 'Pequeño' },
+  { value: 'medium', label: 'Mediano' },
+  { value: 'large', label: 'Grande' },
+];
+
+function TypedText({
+  target,
+  charStates,
+  fontSize,
+}: {
+  target: string;
+  charStates: string[];
+  fontSize: FontSize;
+}) {
   return (
-    <p className="font-mono text-xl sm:text-2xl leading-relaxed tracking-wide whitespace-pre-wrap break-words">
+    <p
+      className={cn(
+        'font-mono leading-relaxed tracking-wide whitespace-pre-wrap break-words',
+        FONT_SIZE_CLASSES[fontSize],
+      )}
+    >
       {target.split('').map((char, index) => (
         <span key={index} className={CHAR_STYLES[charStates[index]]}>
           {char === ' ' ? ' ' : char}
         </span>
       ))}
     </p>
+  );
+}
+
+function FontSizeToggle({
+  fontSize,
+  onChange,
+}: {
+  fontSize: FontSize;
+  onChange: (value: FontSize) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Tamaño de letra del texto"
+      className="inline-flex items-center gap-1 rounded-full bg-slate-900/5 p-1 dark:bg-slate-100/10"
+    >
+      {FONT_SIZE_OPTIONS.map((option) => {
+        const isActive = fontSize === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={isActive}
+            title={option.label}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+              isActive
+                ? 'bg-teal-600 text-white shadow-sm'
+                : 'text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-slate-100/10',
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -222,6 +286,21 @@ export default function TypingGame() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Igual que ThemeToggle: Astro pre-renderiza este componente en el
+  // servidor sin acceso a localStorage, así que arrancamos en null (mismo
+  // valor que ve el servidor) y sincronizamos el real en un efecto que solo
+  // corre en el cliente, para evitar un hydration mismatch.
+  const [fontSize, setFontSize] = useState<FontSize | null>(null);
+
+  useEffect(() => {
+    setFontSize(readStoredFontSize());
+  }, []);
+
+  useEffect(() => {
+    if (fontSize === null) return;
+    persistFontSize(fontSize);
+  }, [fontSize]);
+
   const handleFinish = useCallback(
     (stats: { wpm: number; accuracy: number; elapsedMs: number }, errorCount: number) => {
       const passed = stats.wpm >= activeLevel.minWpm && stats.accuracy >= activeLevel.minAccuracy;
@@ -360,6 +439,10 @@ export default function TypingGame() {
           />
         </div>
 
+        <div className="mb-3 flex justify-end">
+          <FontSizeToggle fontSize={fontSize ?? 'medium'} onChange={setFontSize} />
+        </div>
+
         <div
           onClick={() => inputRef.current?.focus()}
           className="relative min-h-[220px] rounded-2xl bg-white/50 p-8 ring-teal-400 focus-within:ring-2 dark:bg-slate-800/50"
@@ -393,7 +476,7 @@ export default function TypingGame() {
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.2 }}
             >
-              <TypedText target={target} charStates={charStates} />
+              <TypedText target={target} charStates={charStates} fontSize={fontSize ?? 'medium'} />
             </motion.div>
           </AnimatePresence>
 
