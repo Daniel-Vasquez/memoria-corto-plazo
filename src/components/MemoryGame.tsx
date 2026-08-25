@@ -272,7 +272,7 @@ function ResultsOverlay({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 overflow-y-auto rounded-2xl bg-slate-100/95 backdrop-blur-sm dark:bg-slate-900/95"
+      className="relative col-start-1 row-start-1 rounded-2xl bg-slate-100/95 backdrop-blur-sm dark:bg-slate-900/95"
     >
       {result.passed && <Confetti />}
       <motion.div
@@ -548,7 +548,7 @@ export default function MemoryGame() {
         <div
           ref={containerRef}
           onClick={handleContainerClick}
-          className="relative min-h-[220px] rounded-2xl bg-white/50 p-8 ring-teal-400 focus-within:ring-2 dark:bg-slate-800/50"
+          className="relative grid min-h-[220px] rounded-2xl bg-white/50 p-8 ring-teal-400 focus-within:ring-2 dark:bg-slate-800/50"
         >
           <div aria-live="polite" className="sr-only">
             {liveAnnouncement}
@@ -561,6 +561,7 @@ export default function MemoryGame() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.2 }}
+              className="col-start-1 row-start-1"
             >
               {phase === 'idle' && (
                 <div>
