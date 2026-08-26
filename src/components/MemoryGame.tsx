@@ -13,6 +13,8 @@ import {
   persistMemorizeSpeed,
   type MemorizeSpeed,
 } from '@/lib/memorizeSpeed';
+import { readStoredSoundEnabled, persistSoundEnabled } from '@/lib/soundPreference';
+import { setKeySoundEnabled } from '@/lib/keySound';
 import type { CharState, Level, LevelResult } from '@/types/game';
 
 const CONFETTI_COLORS = ['#0d9488', '#059669', '#f59e0b', '#38bdf8', '#f43f5e'];
@@ -228,6 +230,60 @@ function MemorizeSpeedToggle({
   );
 }
 
+/** Bocina con ondas (sonido activado) u ondas tachadas (desactivado). SVG a
+ * mano en vez de una librería de íconos: es un único glyph y el resto del
+ * proyecto ya evita dependencias nuevas por lo mismo (ver cn() en cn.ts). */
+function HornIcon({ muted }: { muted: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 9v6h4l5 4V5L8 9H4Z" />
+      {muted ? (
+        <path d="M16 9l5 6M21 9l-5 6" />
+      ) : (
+        <path d="M17.5 8.5a5 5 0 0 1 0 7M20 6a9 9 0 0 1 0 12" />
+      )}
+    </svg>
+  );
+}
+
+function SoundToggle({
+  soundEnabled,
+  onChange,
+}: {
+  soundEnabled: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={soundEnabled}
+      title={soundEnabled ? 'Sonido activado' : 'Sonido desactivado'}
+      onClick={() => onChange(!soundEnabled)}
+      className={cn(
+        'inline-flex items-center justify-center rounded-full p-2 transition-colors',
+        soundEnabled
+          ? 'bg-slate-900/5 text-slate-600 hover:bg-slate-900/10 dark:bg-slate-100/10 dark:text-slate-300 dark:hover:bg-slate-100/20'
+          : 'bg-rose-100/70 text-rose-500 hover:bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400',
+      )}
+    >
+      <HornIcon muted={!soundEnabled} />
+      <span className="sr-only">
+        {soundEnabled ? 'Silenciar sonido de teclas' : 'Activar sonido de teclas'}
+      </span>
+    </button>
+  );
+}
+
 function StatPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-center rounded-xl bg-white/60 px-4 py-2 shadow-sm dark:bg-slate-800/60">
@@ -423,10 +479,17 @@ export default function MemoryGame() {
   // Mismo patrón hydration-safe que fontSize: arranca en null (igual que el
   // servidor, sin localStorage) y se sincroniza en un efecto client-only.
   const [memorizeSpeed, setMemorizeSpeed] = useState<MemorizeSpeed | null>(null);
+  // Idem: arranca en null y se sincroniza client-only. setKeySoundEnabled()
+  // (keySound.ts) es el flag real que consulta playKeySound en cada
+  // pulsación — no pasa por useMemoryEngine, así que no reinicia el intento
+  // en curso al togglearse (a diferencia de memorizeSpeed, acá no hay
+  // ningún cronómetro que pueda desincronizarse).
+  const [soundEnabled, setSoundEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
     setFontSize(readStoredFontSize());
     setMemorizeSpeed(readStoredMemorizeSpeed());
+    setSoundEnabled(readStoredSoundEnabled());
 
     const storedLevel = getLevelById(useGameStore.getState().activeLevelId);
     if (storedLevel) {
@@ -444,6 +507,12 @@ export default function MemoryGame() {
     if (memorizeSpeed === null) return;
     persistMemorizeSpeed(memorizeSpeed);
   }, [memorizeSpeed]);
+
+  useEffect(() => {
+    if (soundEnabled === null) return;
+    setKeySoundEnabled(soundEnabled);
+    persistSoundEnabled(soundEnabled);
+  }, [soundEnabled]);
 
   const handleFinish = useCallback(
     (stats: { wpm: number; accuracy: number; elapsedMs: number }, errorCount: number) => {
@@ -635,7 +704,8 @@ export default function MemoryGame() {
           />
         </div>
 
-        <div className="mb-3 flex flex-wrap justify-end gap-3">
+        <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
+          <SoundToggle soundEnabled={soundEnabled ?? true} onChange={setSoundEnabled} />
           <MemorizeSpeedToggle speed={memorizeSpeed ?? 'normal'} onChange={setMemorizeSpeed} />
           <FontSizeToggle fontSize={fontSize ?? 'medium'} onChange={setFontSize} />
         </div>

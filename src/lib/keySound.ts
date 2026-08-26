@@ -3,6 +3,13 @@
 // la primera pulsación real (gesto del usuario) para respetar las políticas
 // de autoplay de los navegadores.
 let audioContext: AudioContext | null = null;
+let soundEnabled = true;
+
+/** Controla el botón de bocina del header: cuando está apagado, playKeySound
+ * es un no-op en vez de tener que colar el flag por cada llamador. */
+export function setKeySoundEnabled(enabled: boolean) {
+  soundEnabled = enabled;
+}
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -22,6 +29,7 @@ function getAudioContext(): AudioContext | null {
 }
 
 export function playKeySound(correct: boolean) {
+  if (!soundEnabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
 
