@@ -201,6 +201,22 @@ hay margen de error definido por tier (`minAccuracy` sube de 85% en Básico a
   texto desaparece hasta `submit()`), con la misma fórmula de
   palabras=longitud/5 que usaba el motor de mecanografía. Ya no representa
   "velocidad de copiado" sino "velocidad para volcar lo que recordaste".
+  El cronómetro arranca apenas el texto desaparece, no en la primera
+  pulsación — así que el tiempo que el jugador tarda en *recordar* antes de
+  escribir la primera letra también cuenta contra su WPM.
+- **`minWpm` de `buildTier()` (`data/levels.ts`) se recalibró a la baja el
+  2026-08-25** tras un reporte real: en Medio 1 un intento con `Ln 8SrD`
+  (precisión 100%, 0 errores, texto idéntico al original) dio WPM 8 y no
+  superaba el nivel porque el umbral original era `minWpm: 20`. Los rangos
+  originales (heredados tal cual del motor de mecanografía, donde WPM medía
+  velocidad de copiado sin tope práctico) no tenían en cuenta que acá el
+  WPM está acotado por el tiempo de *recordar*, que crece poco con la
+  longitud del patrón — a diferencia de escribir mientras se ve el texto,
+  donde un jugador más hábil sí escala su WPM. Rangos nuevos:
+  Básico 5-8, Medio 6-10, Avanzado 7-12, Master 8-15 (antes 10-20, 20-30,
+  30-40, 40-60 respectivamente). Igual que el resto de valores de
+  dificultad del proyecto, son una estimación razonada, no un número
+  validado con varios jugadores (ver Pendiente).
 
 ## Decisiones de diseño (por qué está así)
 
@@ -418,6 +434,12 @@ hay margen de error definido por tier (`minAccuracy` sube de 85% en Básico a
   reales — puede hacer falta ajustarlos (sobre todo la longitud máxima de
   `avanzado`/`master`, 18-28 caracteres, que en fuentes grandes puede
   memorizarse muy difícil en el tiempo que da `getMemorizeDurationMs`).
+- Los `minWpm` recalibrados en `data/levels.ts` (ver "Condición de
+  victoria") tampoco están validados con varios jugadores — solo con el
+  caso puntual que los motivó (Medio 1). Puede hacer falta otro ajuste tras
+  más partidas, sobre todo en `avanzado`/`master`, donde no hay todavía
+  ningún reporte real de qué WPM es alcanzable con patrones de 12-28
+  caracteres.
 - Los patrones aleatorios no son pronunciables ni tienen significado (a
   diferencia de las palabras/código curados que reemplazaron) — no se evaluó
   si eso afecta la experiencia para lectores de pantalla más allá del

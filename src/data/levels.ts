@@ -69,11 +69,22 @@ function tierInstructions(tier: Tier): string {
   }
 }
 
+// minWpm bajado respecto a los valores originales (heredados del proyecto de
+// mecanografía anterior, donde WPM medía velocidad de copiado sin límite
+// práctico de escala). Acá el cronómetro de WPM arranca apenas el patrón
+// desaparece, así que incluye el tiempo de *recordar* antes de teclear, no
+// solo el de escribir — y ese tiempo de recuerdo no baja mucho aunque el
+// patrón sea más largo (el jugador no "escribe más rápido", tarda más en
+// recordar). Con los valores viejos (10-60) un intento con precisión 100%
+// podía salir "no superado" solo por WPM (ver sesión que reportó WPM 8 en
+// Medio 1 con minWpm 20 y accuracy 100%). Valores nuevos, sin validar con
+// jugadores reales (ver Pendiente en CLAUDE.md) — reescalar si se ven muy
+// laxos o siguen bloqueando intentos perfectos.
 export const LEVELS: Level[] = [
-  ...buildTier('basico', 1, [10, 20], [85, 90]),
-  ...buildTier('medio', 11, [20, 30], [88, 92]),
-  ...buildTier('avanzado', 21, [30, 40], [90, 94]),
-  ...buildTier('master', 31, [40, 60], [94, 97]),
+  ...buildTier('basico', 1, [5, 8], [85, 90]),
+  ...buildTier('medio', 11, [6, 10], [88, 92]),
+  ...buildTier('avanzado', 21, [7, 12], [90, 94]),
+  ...buildTier('master', 31, [8, 15], [94, 97]),
 ];
 
 export function getLevelById(id: number): Level | undefined {
