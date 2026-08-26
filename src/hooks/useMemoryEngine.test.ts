@@ -16,6 +16,20 @@ describe('getMemorizeDurationMs', () => {
     expect(getMemorizeDurationMs('ab')).toBeLessThan(getMemorizeDurationMs('a'.repeat(80)));
     expect(getMemorizeDurationMs('a'.repeat(200))).toBeLessThanOrEqual(9000);
   });
+
+  it('scales with the speed preference: lento > normal > rapido', () => {
+    const target = 'abcdefg';
+    const lento = getMemorizeDurationMs(target, 'lento');
+    const normal = getMemorizeDurationMs(target, 'normal');
+    const rapido = getMemorizeDurationMs(target, 'rapido');
+
+    expect(lento).toBeGreaterThan(normal);
+    expect(normal).toBeGreaterThan(rapido);
+  });
+
+  it('defaults to the normal speed when none is given', () => {
+    expect(getMemorizeDurationMs('abcdefg')).toBe(getMemorizeDurationMs('abcdefg', 'normal'));
+  });
 });
 
 describe('useMemoryEngine', () => {
@@ -118,5 +132,27 @@ describe('useMemoryEngine', () => {
 
     expect(result.current.phase).toBe('idle');
     expect(result.current.typed).toBe('');
+  });
+
+  it('resets phase/typed and applies the new duration when the speed preference changes', () => {
+    vi.useFakeTimers();
+    const onFinish = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ speed }: { speed: 'lento' | 'normal' | 'rapido' }) =>
+        useMemoryEngine('abcdefg', onFinish, true, speed),
+      { initialProps: { speed: 'normal' } },
+    );
+
+    const normalDuration = result.current.memorizeDurationMs;
+    act(() => result.current.start());
+    act(() => vi.advanceTimersByTime(normalDuration));
+    act(() => result.current.updateTyped('ab'));
+    expect(result.current.phase).toBe('recalling');
+
+    rerender({ speed: 'lento' });
+
+    expect(result.current.phase).toBe('idle');
+    expect(result.current.typed).toBe('');
+    expect(result.current.memorizeDurationMs).toBeGreaterThan(normalDuration);
   });
 });

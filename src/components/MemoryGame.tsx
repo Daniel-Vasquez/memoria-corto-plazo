@@ -8,6 +8,11 @@ import NameModal from '@/components/NameModal';
 import ConfirmModal from '@/components/ConfirmModal';
 import { cn } from '@/lib/cn';
 import { readStoredFontSize, persistFontSize, type FontSize } from '@/lib/fontSize';
+import {
+  readStoredMemorizeSpeed,
+  persistMemorizeSpeed,
+  type MemorizeSpeed,
+} from '@/lib/memorizeSpeed';
 import type { CharState, Level, LevelResult } from '@/types/game';
 
 const CONFETTI_COLORS = ['#0d9488', '#059669', '#f59e0b', '#38bdf8', '#f43f5e'];
@@ -156,6 +161,50 @@ function FontSizeToggle({
     >
       {FONT_SIZE_OPTIONS.map((option) => {
         const isActive = fontSize === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={isActive}
+            title={option.label}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+              isActive
+                ? 'bg-teal-600 text-white shadow-sm'
+                : 'text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-slate-100/10',
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const MEMORIZE_SPEED_OPTIONS: { value: MemorizeSpeed; label: string }[] = [
+  { value: 'lento', label: 'Lento' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'rapido', label: 'Rápido' },
+];
+
+function MemorizeSpeedToggle({
+  speed,
+  onChange,
+}: {
+  speed: MemorizeSpeed;
+  onChange: (value: MemorizeSpeed) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Velocidad de memorización"
+      className="inline-flex items-center gap-1 rounded-full bg-slate-900/5 p-1 dark:bg-slate-100/10"
+    >
+      {MEMORIZE_SPEED_OPTIONS.map((option) => {
+        const isActive = speed === option.value;
         return (
           <button
             key={option.value}
@@ -355,15 +404,24 @@ export default function MemoryGame() {
   // valor que ve el servidor) y sincronizamos el real en un efecto que solo
   // corre en el cliente, para evitar un hydration mismatch.
   const [fontSize, setFontSize] = useState<FontSize | null>(null);
+  // Mismo patrón hydration-safe que fontSize: arranca en null (igual que el
+  // servidor, sin localStorage) y se sincroniza en un efecto client-only.
+  const [memorizeSpeed, setMemorizeSpeed] = useState<MemorizeSpeed | null>(null);
 
   useEffect(() => {
     setFontSize(readStoredFontSize());
+    setMemorizeSpeed(readStoredMemorizeSpeed());
   }, []);
 
   useEffect(() => {
     if (fontSize === null) return;
     persistFontSize(fontSize);
   }, [fontSize]);
+
+  useEffect(() => {
+    if (memorizeSpeed === null) return;
+    persistMemorizeSpeed(memorizeSpeed);
+  }, [memorizeSpeed]);
 
   const handleFinish = useCallback(
     (stats: { wpm: number; accuracy: number; elapsedMs: number }, errorCount: number) => {
@@ -392,7 +450,7 @@ export default function MemoryGame() {
     start,
     updateTyped,
     submit,
-  } = useMemoryEngine(target, handleFinish, engineEnabled);
+  } = useMemoryEngine(target, handleFinish, engineEnabled, memorizeSpeed ?? 'normal');
 
   // No usamos un efecto keyed en [phase] para enfocar el textarea al entrar
   // a "recalling": el motion.div de esa fase usa `mode="wait"`, así que su
@@ -551,7 +609,8 @@ export default function MemoryGame() {
           />
         </div>
 
-        <div className="mb-3 flex justify-end">
+        <div className="mb-3 flex flex-wrap justify-end gap-3">
+          <MemorizeSpeedToggle speed={memorizeSpeed ?? 'normal'} onChange={setMemorizeSpeed} />
           <FontSizeToggle fontSize={fontSize ?? 'medium'} onChange={setFontSize} />
         </div>
 

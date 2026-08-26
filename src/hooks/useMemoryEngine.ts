@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { playKeySound } from '@/lib/keySound';
 import type { CharState } from '@/types/game';
+import type { MemorizeSpeed } from '@/lib/memorizeSpeed';
 
 export type MemoryPhase = 'idle' | 'memorizing' | 'recalling' | 'finished';
 
@@ -26,15 +27,29 @@ const MIN_MEMORIZE_MS = 3000;
 const MAX_MEMORIZE_MS = 9000;
 const BASE_MEMORIZE_MS = 2200;
 const MS_PER_CHAR = 90;
+const MIN_MEMORIZE_MS_WITH_SPEED = 1000;
+
+/** Multiplicador sobre el tiempo base según la preferencia de velocidad del
+ * jugador (botones Lento/Normal/Rápido, persistidos en localStorage). */
+const SPEED_MULTIPLIERS: Record<MemorizeSpeed, number> = {
+  lento: 1.5,
+  normal: 1,
+  rapido: 0.6,
+};
 
 /**
  * Tiempo de memorización en ms: crece con la longitud del texto (más para
  * párrafos/código del tier Master) pero se mantiene en el rango ~3-9s
  * pedido — ni instantáneo para textos cortos ni interminable para los largos.
+ * `speed` aplica un multiplicador sobre ese tiempo base; el resultado ya no
+ * queda acotado al rango 3-9s (a propósito: "Rápido" debe poder bajar el
+ * piso de 3s incluso en patrones cortos de Básico, si no el botón no tendría
+ * ningún efecto ahí) — solo se protege con un piso absoluto de 1s.
  */
-export function getMemorizeDurationMs(target: string): number {
+export function getMemorizeDurationMs(target: string, speed: MemorizeSpeed = 'normal'): number {
   const raw = BASE_MEMORIZE_MS + target.length * MS_PER_CHAR;
-  return Math.min(MAX_MEMORIZE_MS, Math.max(MIN_MEMORIZE_MS, Math.round(raw)));
+  const base = Math.min(MAX_MEMORIZE_MS, Math.max(MIN_MEMORIZE_MS, Math.round(raw)));
+  return Math.max(MIN_MEMORIZE_MS_WITH_SPEED, Math.round(base * SPEED_MULTIPLIERS[speed]));
 }
 
 function diffCharStates(typed: string, target: string): CharState[] {
@@ -53,6 +68,7 @@ export function useMemoryEngine(
   target: string,
   onFinish: (stats: MemoryStats, errorCount: number) => void,
   enabled = true,
+  speed: MemorizeSpeed = 'normal',
 ): UseMemoryEngineResult {
   const [phase, setPhase] = useState<MemoryPhase>('idle');
   const [typed, setTyped] = useState('');
@@ -63,7 +79,7 @@ export function useMemoryEngine(
   const memorizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finishedRef = useRef(false);
 
-  const memorizeDurationMs = useMemo(() => getMemorizeDurationMs(target), [target]);
+  const memorizeDurationMs = useMemo(() => getMemorizeDurationMs(target, speed), [target, speed]);
 
   const clearMemorizeTimeout = useCallback(() => {
     if (memorizeTimeoutRef.current) {
@@ -82,10 +98,18 @@ export function useMemoryEngine(
     finishedRef.current = false;
   }, [clearMemorizeTimeout]);
 
-  // Reinicia el motor cuando cambia el texto objetivo (nuevo subnivel / reintento).
+  // Reinicia el motor cuando cambia el texto objetivo (nuevo subnivel /
+  // reintento) o la velocidad de memorización: si no reseteáramos también en
+  // el cambio de `speed`, un `setTimeout` ya en marcha (agendado en start()
+  // con la duración vieja) seguiría disparando en el instante viejo, pero
+  // `memorizeMsLeft` ya estaría calculando la cuenta regresiva contra la
+  // duración nueva — desincronizando el contador visible del cambio de fase
+  // real. Resetear evita esa clase de bug, al costo de perder el intento en
+  // curso si el jugador cambia de velocidad a mitad de un intento (igual que
+  // ya pasa si cambia de nivel a mitad de un intento).
   useEffect(() => {
     reset();
-  }, [target, reset]);
+  }, [target, speed, reset]);
 
   useEffect(() => clearMemorizeTimeout, [clearMemorizeTimeout]);
 
