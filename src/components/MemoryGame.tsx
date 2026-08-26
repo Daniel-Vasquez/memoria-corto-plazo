@@ -156,32 +156,37 @@ function FontSizeToggle({
   onChange: (value: FontSize) => void;
 }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label="Tamaño de letra del texto"
-      className="inline-flex items-center gap-1 rounded-full bg-slate-900/5 p-1 dark:bg-slate-100/10"
-    >
-      {FONT_SIZE_OPTIONS.map((option) => {
-        const isActive = fontSize === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={isActive}
-            title={option.label}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-              isActive
-                ? 'bg-teal-600 text-white shadow-sm'
-                : 'text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-slate-100/10',
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
+    <div className="flex flex-col items-center gap-1">
+      <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+        Tamaño de letra del texto
+      </p>
+      <div
+        role="radiogroup"
+        aria-label="Tamaño de letra del texto"
+        className="inline-flex items-center gap-1 rounded-full bg-slate-900/5 p-1 dark:bg-slate-100/10"
+      >
+        {FONT_SIZE_OPTIONS.map((option) => {
+          const isActive = fontSize === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              title={option.label}
+              onClick={() => onChange(option.value)}
+              className={cn(
+                'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                isActive
+                  ? 'bg-teal-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-slate-100/10',
+              )}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -200,32 +205,37 @@ function MemorizeSpeedToggle({
   onChange: (value: MemorizeSpeed) => void;
 }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label="Velocidad de memorización"
-      className="inline-flex items-center gap-1 rounded-full bg-slate-900/5 p-1 dark:bg-slate-100/10"
-    >
-      {MEMORIZE_SPEED_OPTIONS.map((option) => {
-        const isActive = speed === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={isActive}
-            title={option.label}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-              isActive
-                ? 'bg-teal-600 text-white shadow-sm'
-                : 'text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-slate-100/10',
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
+    <div className="flex flex-col items-center gap-1">
+      <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+        Velocidad de memorización
+      </p>
+      <div
+        role="radiogroup"
+        aria-label="Velocidad de memorización"
+        className="inline-flex items-center gap-1 rounded-full bg-slate-900/5 p-1 dark:bg-slate-100/10"
+      >
+        {MEMORIZE_SPEED_OPTIONS.map((option) => {
+          const isActive = speed === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              title={option.label}
+              onClick={() => onChange(option.value)}
+              className={cn(
+                'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                isActive
+                  ? 'bg-teal-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-900/10 dark:text-slate-300 dark:hover:bg-slate-100/10',
+              )}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -264,23 +274,26 @@ function SoundToggle({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <button
-      type="button"
-      aria-pressed={soundEnabled}
-      title={soundEnabled ? 'Sonido activado' : 'Sonido desactivado'}
-      onClick={() => onChange(!soundEnabled)}
-      className={cn(
-        'inline-flex items-center justify-center rounded-full p-2 transition-colors',
-        soundEnabled
-          ? 'bg-slate-900/5 text-slate-600 hover:bg-slate-900/10 dark:bg-slate-100/10 dark:text-slate-300 dark:hover:bg-slate-100/20'
-          : 'bg-rose-100/70 text-rose-500 hover:bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400',
-      )}
-    >
-      <HornIcon muted={!soundEnabled} />
-      <span className="sr-only">
-        {soundEnabled ? 'Silenciar sonido de teclas' : 'Activar sonido de teclas'}
-      </span>
-    </button>
+    <div className="flex flex-row items-center gap-1">
+      <p className="text-center text-sm text-slate-500 dark:text-slate-400">Sonido</p>
+      <button
+        type="button"
+        aria-pressed={soundEnabled}
+        title={soundEnabled ? 'Sonido activado' : 'Sonido desactivado'}
+        onClick={() => onChange(!soundEnabled)}
+        className={cn(
+          'inline-flex items-center justify-center rounded-full p-2 transition-colors',
+          soundEnabled
+            ? 'bg-slate-900/5 text-slate-600 hover:bg-slate-900/10 dark:bg-slate-100/10 dark:text-slate-300 dark:hover:bg-slate-100/20'
+            : 'bg-rose-100/70 text-rose-500 hover:bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400',
+        )}
+      >
+        <HornIcon muted={!soundEnabled} />
+        <span className="sr-only">
+          {soundEnabled ? 'Silenciar sonido de teclas' : 'Activar sonido de teclas'}
+        </span>
+      </button>
+    </div>
   );
 }
 
@@ -704,7 +717,7 @@ export default function MemoryGame() {
           />
         </div>
 
-        <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
+        <div className="mb-3 flex flex-wrap items-end justify-end gap-3">
           <SoundToggle soundEnabled={soundEnabled ?? true} onChange={setSoundEnabled} />
           <MemorizeSpeedToggle speed={memorizeSpeed ?? 'normal'} onChange={setMemorizeSpeed} />
           <FontSizeToggle fontSize={fontSize ?? 'medium'} onChange={setFontSize} />
