@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { LEVELS, TIERS } from '@/data/levels';
+import { LEVELS, TIERS, getLevelById } from '@/data/levels';
 import { generateRandomPattern } from '@/lib/patternGenerator';
 import { useGameStore } from '@/store/useGameStore';
 import { useMemoryEngine } from '@/hooks/useMemoryEngine';
@@ -382,16 +382,32 @@ export default function MemoryGame() {
   const playerName = useGameStore((state) => state.playerName);
   const setPlayerName = useGameStore((state) => state.setPlayerName);
   const unlockedLevelId = useGameStore((state) => state.unlockedLevelId);
+  const setActiveLevelId = useGameStore((state) => state.setActiveLevelId);
   const bestResults = useGameStore((state) => state.bestResults);
   const completeLevel = useGameStore((state) => state.completeLevel);
   const resetProgress = useGameStore((state) => state.resetProgress);
 
+  // `activeLevel` arranca en LEVELS[0], igual que el HTML pre-renderizado en
+  // el servidor (sin localStorage) — a diferencia de unlockedLevelId/
+  // bestResults, que se leen con el hook reactivo de useGameStore y por eso
+  // se autocorrigen solos apenas termina de rehidratar el store, acá el
+  // valor queda calcado UNA sola vez dentro de un useState local (para que
+  // no se regenere el target en cada render). Si se inicializara leyendo
+  // directo de useGameStore(state => state.activeLevelId) quedaría pegado
+  // al valor de la primera pasada de render en el cliente, que puede
+  // ejecutarse antes de que Zustand termine de rehidratar desde
+  // localStorage — bug real que reportó una sesión anterior (activeLevelId
+  // guardaba bien el nivel 12, pero la UI seguía mostrando Básico 1 después
+  // de recargar). Por eso se corrige en el mismo efecto client-only que ya
+  // sincroniza fontSize/memorizeSpeed más abajo, que corre después del
+  // commit — momento en el que la rehidratación ya terminó sin importar el
+  // timing exacto.
   const [activeLevel, setActiveLevel] = useState<Level>(LEVELS[0]);
   // Se genera una sola vez por intento (acá, y en selectLevel/retry más
   // abajo) — nunca dentro de un render ni durante memorizing/recalling —
   // para que el patrón se mantenga estable mientras dura el intento.
   const [target, setTarget] = useState<string>(() =>
-    generateRandomPattern(LEVELS[0].tier, LEVELS[0].subLevel),
+    generateRandomPattern(activeLevel.tier, activeLevel.subLevel),
   );
   const [lastResult, setLastResult] = useState<LevelResult | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -411,6 +427,12 @@ export default function MemoryGame() {
   useEffect(() => {
     setFontSize(readStoredFontSize());
     setMemorizeSpeed(readStoredMemorizeSpeed());
+
+    const storedLevel = getLevelById(useGameStore.getState().activeLevelId);
+    if (storedLevel) {
+      setActiveLevel(storedLevel);
+      setTarget(generateRandomPattern(storedLevel.tier, storedLevel.subLevel));
+    }
   }, []);
 
   useEffect(() => {
@@ -459,12 +481,16 @@ export default function MemoryGame() {
   // cambia `phase` encontraría `inputRef.current` todavía en null. El
   // atributo `autoFocus` del textarea (abajo) sí se dispara justo cuando el
   // nodo queda montado, así que enfoca correctamente sin necesitar clic.
-  const selectLevel = useCallback((level: Level) => {
-    setActiveLevel(level);
-    setTarget(generateRandomPattern(level.tier, level.subLevel));
-    setLastResult(null);
-    setAttempt((n) => n + 1);
-  }, []);
+  const selectLevel = useCallback(
+    (level: Level) => {
+      setActiveLevel(level);
+      setActiveLevelId(level.id);
+      setTarget(generateRandomPattern(level.tier, level.subLevel));
+      setLastResult(null);
+      setAttempt((n) => n + 1);
+    },
+    [setActiveLevelId],
+  );
 
   const retry = useCallback(() => {
     setTarget(generateRandomPattern(activeLevel.tier, activeLevel.subLevel));

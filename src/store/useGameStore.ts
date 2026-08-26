@@ -7,9 +7,12 @@ interface GameState {
   playerName: string | null;
   /** Highest level id (1-40) the player has unlocked. */
   unlockedLevelId: number;
+  /** Id del último nivel seleccionado, para reabrir ahí al recargar la página. */
+  activeLevelId: number;
   /** Best result recorded per level id. */
   bestResults: Record<number, LevelResult>;
   setPlayerName: (name: string) => void;
+  setActiveLevelId: (levelId: number) => void;
   completeLevel: (result: LevelResult) => void;
   resetProgress: () => void;
 }
@@ -19,8 +22,10 @@ export const useGameStore = create<GameState>()(
     (set) => ({
       playerName: null,
       unlockedLevelId: 1,
+      activeLevelId: 1,
       bestResults: {},
       setPlayerName: (name) => set({ playerName: name.trim() }),
+      setActiveLevelId: (levelId) => set({ activeLevelId: levelId }),
       completeLevel: (result) =>
         set((state) => {
           const previousBest = state.bestResults[result.levelId];
@@ -35,7 +40,7 @@ export const useGameStore = create<GameState>()(
                 : state.unlockedLevelId,
           };
         }),
-      resetProgress: () => set({ unlockedLevelId: 1, bestResults: {} }),
+      resetProgress: () => set({ unlockedLevelId: 1, activeLevelId: 1, bestResults: {} }),
     }),
     { name: 'memoria-corto-plazo-progress' },
   ),
