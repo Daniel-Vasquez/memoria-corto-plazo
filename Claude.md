@@ -44,6 +44,16 @@ o el campo `Level.texts`, es resto sin limpiar de esa época también.
 - **Web Audio API nativa** (`src/lib/keySound.ts`) para el feedback sonoro
   por pulsación durante la fase de recuerdo — sin librería externa (ni
   howler.js ni similares).
+- **`@astrojs/vercel`** (fijado en `8.x`, no `latest` — la rama `11.x`
+  exige Astro ≥7 y el proyecto está en Astro 5) + `output: 'server'` en
+  `astro.config.mjs`, agregados en la sesión de migración a MongoDB (ver
+  "Sincronización de progreso con MongoDB" más abajo). `index.astro` y
+  `progreso.astro` llevan `export const prerender = true` explícito para
+  seguir sirviéndose estáticas — solo `/api/progress` corre como función
+  serverless.
+- **Driver oficial `mongodb`** (sin ODM tipo Mongoose — el shape que se
+  guarda es un objeto plano, `ProgressDocument` en `src/lib/mongodb.ts`) para
+  respaldar en la nube el progreso que antes vivía solo en `localStorage`.
 
 ## Comandos
 
@@ -59,6 +69,12 @@ npm run test     # vitest run
 Hook de pre-commit (`husky` + `lint-staged`, configurado en `.lintstagedrc.json`):
 corre `eslint --fix` + `prettier --write` sobre los archivos staged en cada
 `git commit`. Se instala solo al correr `npm install` (script `prepare`).
+
+Requiere `MONGODB_URI` en el entorno para que `/api/progress` funcione (ver
+`.env.example`) — sin esa variable, la API devuelve 500 pero el resto de la
+app sigue funcionando con `localStorage` (ver "Sincronización de progreso
+con MongoDB"). En Vercel se configura por proyecto (Production/Preview/
+Development); localmente, copiar `.env.example` a `.env` (ignorado por git).
 
 ## Estructura
 
@@ -86,18 +102,25 @@ src/
     patternGenerator.ts       # generateRandomPattern(tier, subLevel): pool de caracteres
                                # y longitud escalan con la dificultad
     patternGenerator.test.ts  # tests de pools/longitud/espacios por tier
+    mongodb.ts                # getProgressCollection(): singleton de conexión (server-only,
+                               # usa MONGODB_URI) + tipo ProgressDocument
+    progressSync.ts            # client-side: pullProgress/pushProgress/mergeProgress/
+                                # syncProgressOnLoad — ver "Sincronización de progreso con MongoDB"
+    progressSync.test.ts       # tests de mergeProgress (única función pura del módulo)
   store/
     useGameStore.ts    # Zustand + persist: playerName, unlockedLevelId,
-                        # bestResults, completeLevel, resetProgress
+                        # bestResults, completeLevel, resetProgress, applyProgress
   data/
     levels.ts           # genera los 40 Level (metadata: id, tier, subLevel, minWpm,
                          # minAccuracy) — ya no contiene el contenido a memorizar,
                          # eso lo genera generateRandomPattern() en tiempo real
   types/
-    game.ts              # Tier, Level, LevelResult, CharState
+    game.ts              # Tier, Level, LevelResult, CharState, ProgressSnapshot
   layouts/Layout.astro   # <head> con el script anti-FOUC de temas
-  pages/index.astro      # header/footer + <MemoryGame client:load />
-  pages/progreso.astro   # header/footer + <ProgressDashboard client:load />
+  pages/index.astro      # header/footer + <MemoryGame client:load />; prerender = true
+  pages/progreso.astro   # header/footer + <ProgressDashboard client:load />; prerender = true
+  pages/api/progress.ts  # GET/POST del snapshot de progreso en Mongo, único endpoint dinámico
+                          # del sitio (el resto se sigue sirviendo estático, ver Stack)
   styles/global.css
 ```
 
@@ -114,8 +137,18 @@ src/
 - `GameState` (store): `playerName`, `unlockedLevelId` (1-40), `bestResults`
   (`Record<levelId, LevelResult>`, se sobreescribe solo si el nuevo WPM es
   mayor), `completeLevel()`, `resetProgress()` (limpia nivel/resultados, NO
-  el nombre), `setPlayerName()`. Sin cambios de lógica respecto al proyecto
-  original — solo cambió la key de `localStorage` (ver Gotchas/Pendiente).
+  el nombre), `setPlayerName()`, `applyProgress()` (setter directo usado solo
+  por la sincronización con Mongo, ver abajo — no recalcula "isNewBest"
+  porque el snapshot que recibe ya viene mezclado por `mergeProgress()`).
+  Sin cambios de lógica respecto al proyecto original — solo cambió la key
+  de `localStorage` (ver Gotchas/Pendiente).
+- `ProgressSnapshot` (`types/game.ts`): `{ unlockedLevelId, bestResults }` —
+  el subconjunto de `GameState` que viaja hacia/desde `/api/progress`.
+  Deliberadamente no incluye `playerName` ni `activeLevelId`: el nombre no
+  tiene valor guardado en Mongo sin un sistema de cuentas real (ver
+  "Sincronización de progreso con MongoDB"), y `activeLevelId` es una
+  preferencia de UI por dispositivo ("qué nivel tenía abierto"), no progreso
+  que tenga sentido sincronizar.
 
 ## La mecánica: máquina de estados de 3 fases (`useMemoryEngine`)
 
@@ -217,6 +250,97 @@ hay margen de error definido por tier (`minAccuracy` sube de 85% en Básico a
   30-40, 40-60 respectivamente). Igual que el resto de valores de
   dificultad del proyecto, son una estimación razonada, no un número
   validado con varios jugadores (ver Pendiente).
+
+## Sincronización de progreso con MongoDB
+
+Antes de esta sesión el progreso vivía únicamente en `localStorage`
+(`memoria-corto-plazo-progress`, ver arriba) — sin backend, sin build
+server-side. Se agregó MongoDB como respaldo en la nube sin tocar esa base:
+`localStorage` sigue siendo la fuente de verdad inmediata para la UI (todos
+los patrones de hidratación de `MemoryGame.tsx` — `activeLevel`/`fontSize`/
+`memorizeSpeed` arrancando en `useState` local o `null` y sincronizándose en
+el efecto client-only — siguen intactos), y Mongo es una capa de
+sincronización en segundo plano que nunca bloquea ni rompe una partida si
+falla.
+
+- **Identidad: UUID anónimo en cookie, no cuenta real**. `player_id`
+  (httpOnly, `secure` en producción, `sameSite: 'lax'`, 2 años) se genera
+  con `randomUUID()` la primera vez que el navegador pega contra
+  `/api/progress` (`getOrCreatePlayerId()` en `src/pages/api/progress.ts`).
+  No hay login ni verificación — es el mismo modelo de confianza que ya
+  tenía `playerName` (un texto libre sin autenticar), solo que ahora
+  identifica un documento en Mongo en vez de nada. Decisión explícita:
+  cross-device requeriría un sistema de cuentas real, que se descartó por
+  ahora a favor de fricción cero (ver Pendiente).
+  - **Caveat de dominio**: el sitio se sirve en el dominio de Vercel y en
+    `memoria.danielvasquez.lat`; la cookie `player_id` es específica de
+    dominio, así que un jugador que entra por ambos ve progreso
+    desincronizado entre uno y otro (dos IDs distintos). No hay redirect
+    de un dominio a otro implementado — si hace falta un solo dominio
+    canónico, es una decisión de Vercel (redirect a nivel de proyecto), no
+    de este código.
+- **`src/pages/api/progress.ts`** — único endpoint, sin `prerender` (server
+  route real):
+  - `GET`: asegura la cookie (la crea si falta) y devuelve el
+    `ProgressSnapshot` guardado en Mongo para ese `player_id`, o
+    `{ unlockedLevelId: 1, bestResults: {} }` si todavía no existe
+    documento.
+  - `POST`: valida el body a mano (`isValidSnapshot`/`isValidLevelResult` —
+    boundary de entrada externa, por eso sí hay validación aquí a
+    diferencia del resto del código interno del proyecto) y hace
+    `updateOne` con `upsert: true`. Última escritura gana — no hay merge
+    server-side porque es progreso de un solo jugador por id, sin edición
+    concurrente real esperada.
+- **`src/lib/mongodb.ts`** — conexión cacheada en una variable de módulo
+  (`clientPromise`), no reconectada en cada invocación: necesario en
+  serverless de Vercel, donde una misma instancia de función puede atender
+  varias requests (warm start) y reabrir conexión cada vez agotaría el pool
+  de Atlas. `ProgressDocument` tipa `_id` como `string` (el UUID de la
+  cookie) en vez del `ObjectId` que asume por defecto el driver — sin esto,
+  `collection.findOne({ _id: playerId })` no tipa (ver `getProgressCollection()`).
+- **`src/lib/progressSync.ts`** (client-side, sin dependencia del store —
+  ver por qué abajo):
+  - `mergeProgress(local, remote)`: pura, sin I/O — por eso es la única
+    pieza de este módulo con test (`progressSync.test.ts`, mismo criterio
+    que ya aplicaba `patternGenerator.test.ts`). Misma regla que
+    `completeLevel` en `useGameStore.ts` para decidir qué `bestResult` gana
+    por nivel (mayor `wpm`), y `Math.max` para `unlockedLevelId`.
+  - `pushProgress(snapshot)`: `POST` fire-and-forget envuelto en
+    `try/catch` silencioso — sin red o con Mongo caído, no revienta ninguna
+    acción del jugador, solo se pierde ese respaldo puntual (se reintenta
+    en la próxima mutación o carga de página).
+  - `syncProgressOnLoad(local, applyMerged)`: se llama una única vez, desde
+    el mismo efecto client-only de `MemoryGame.tsx` que ya sincronizaba
+    `fontSize`/`memorizeSpeed`/`activeLevel` (línea ~502). Trae el snapshot
+    remoto, lo mezcla con `mergeProgress`, aplica el resultado al store
+    solo si cambió algo local (`applyMerged`, que es
+    `useGameStore.getState().applyProgress`), y sube el merge de vuelta si
+    el servidor quedó desactualizado. Este último paso es lo que migra sin
+    ningún script aparte el progreso que ya vivía en `localStorage` antes
+    del deploy: la primera vez que corre tras el deploy, Mongo no tiene
+    nada para ese `player_id` nuevo, `mergeProgress` devuelve el snapshot
+    local tal cual, y como difiere del remoto (vacío) se sube solo.
+  - **Por qué `progressSync.ts` no importa `useGameStore`**: evitar una
+    dependencia circular con `useGameStore.ts` (que sí importa
+    `pushProgress` de acá, para llamarlo desde `completeLevel`/
+    `resetProgress`). En vez de que este módulo lea el store directamente,
+    `syncProgressOnLoad` recibe el snapshot local y el setter como
+    parámetros — los pasa `MemoryGame.tsx`, que ya tiene acceso al store.
+    Efecto colateral bueno: `mergeProgress`/`pushProgress`/`pullProgress`
+    quedan testeables sin mockear Zustand.
+- **Qué dispara un `push`**: solo `completeLevel` y `resetProgress` en
+  `useGameStore.ts` — son las dos acciones que cambian
+  `unlockedLevelId`/`bestResults`. `setPlayerName` y `setActiveLevelId` NO
+  disparan sync porque ninguno de los dos campos forma parte de
+  `ProgressSnapshot` (ver Modelo de datos, arriba).
+- **`output: 'server'` + `@astrojs/vercel` en vez de mantener el sitio
+  100% estático**: imprescindible para que `/api/progress` corra
+  server-side (el driver de `mongodb` no puede ejecutarse en el bundle del
+  cliente). `index.astro` y `progreso.astro` llevan
+  `export const prerender = true` explícito para que Astro las siga
+  sirviendo estáticas de todos modos — ninguna de las dos depende de datos
+  de request, así que no había motivo para perder ese rendimiento solo por
+  agregar un endpoint.
 
 ## Decisiones de diseño (por qué está así)
 
@@ -413,6 +537,17 @@ hay margen de error definido por tier (`minAccuracy` sube de 85% en Básico a
 
 ## Gotchas conocidos
 
+- **`npm install @astrojs/vercel` sin fijar versión instala la rama `11.x`,
+  que exige `astro@^7` y rompe con `ERESOLVE`** — el proyecto está en Astro
+  5.2.5. Hay que instalar `@astrojs/vercel@8` explícitamente (peer
+  `astro@^5.0.0`).
+- **No hay forma de probar `/api/progress` en local sin una `MONGODB_URI`
+  real** (no hay Mongo local ni Docker en este entorno, y el proyecto no
+  tiene un mock/in-memory Mongo configurado) — se verificó la validación de
+  input (400 ante body inválido) y que el resto del sitio sigue
+  respondiendo 200 aunque la API devuelva 500 sin esa variable, pero el
+  camino feliz completo (GET/POST contra un Mongo real, cookie
+  persistiendo entre requests) no se probó end-to-end todavía.
 - La extensión de automatización de Chrome (Claude in Chrome) **bloquea por
   política el acceso a `localhost`/`127.0.0.1`** — da
   `Error capturing screenshot: Frame with ID 0 is showing error page` aunque
@@ -427,6 +562,24 @@ hay margen de error definido por tier (`minAccuracy` sube de 85% en Básico a
   archivos que ya estaban en el índice, solo evita que se añadan nuevos.
 
 ## Pendiente / ideas no implementadas
+
+- **No probado end-to-end contra un MongoDB real** (ver Gotchas) — falta
+  configurar `MONGODB_URI` en Vercel (o vía la integración oficial de
+  MongoDB Atlas en el marketplace de Vercel, que además configura el
+  acceso de red del cluster automáticamente) y hacer una pasada manual
+  post-deploy: cargar la app con progreso viejo en `localStorage`,
+  confirmar que sube a Mongo, borrar `localStorage` y confirmar que se
+  restaura desde el servidor.
+- El progreso no sincroniza entre el dominio de Vercel y
+  `memoria.danielvasquez.lat` (cookie por dominio, ver "Sincronización de
+  progreso con MongoDB") — si en algún momento hace falta un solo dominio
+  canónico, hay que decidir un redirect a nivel de proyecto en Vercel.
+- Identidad 100% anónima por cookie (ver "Sincronización de progreso con
+  MongoDB") — un jugador que borra cookies o cambia de navegador pierde el
+  vínculo con su progreso en Mongo (sigue teniendo el de `localStorage` en
+  el navegador viejo, pero no se re-vincula solo). Pasar a cuentas reales
+  (email/OAuth) resolvería esto pero fue explícitamente descartado por
+  ahora a favor de fricción cero.
 
 - Los pools de caracteres, rangos de longitud y probabilidad de espacios de
   `patternGenerator.ts` (`CHAR_POOLS`, `LENGTH_RANGES`, `SPACE_PROBABILITY`)

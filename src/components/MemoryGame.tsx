@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LEVELS, TIERS, getLevelById } from '@/data/levels';
 import { generateRandomPattern } from '@/lib/patternGenerator';
+import { syncProgressOnLoad } from '@/lib/progressSync';
 import { useGameStore } from '@/store/useGameStore';
 import { useMemoryEngine } from '@/hooks/useMemoryEngine';
 import NameModal from '@/components/NameModal';
@@ -509,6 +510,15 @@ export default function MemoryGame() {
       setActiveLevel(storedLevel);
       setTarget(generateRandomPattern(storedLevel.tier, storedLevel.subLevel));
     }
+
+    // Mezcla el progreso local con el respaldo en Mongo (ver progressSync.ts):
+    // en la primera carga tras el deploy, el servidor no tiene nada todavía y
+    // esto sube lo que ya había en localStorage; en cargas posteriores, trae
+    // lo que el servidor tenga de más (p. ej. progreso restaurado tras borrar
+    // localStorage). No bloquea el render: si falla, el juego sigue andando
+    // con localStorage como fuente de verdad.
+    const { unlockedLevelId, bestResults, applyProgress } = useGameStore.getState();
+    void syncProgressOnLoad({ unlockedLevelId, bestResults }, applyProgress);
   }, []);
 
   useEffect(() => {

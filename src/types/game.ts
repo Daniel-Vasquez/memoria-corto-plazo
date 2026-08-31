@@ -32,3 +32,9 @@ export interface LevelResult {
 
 /** Resultado de comparar, carácter a carácter, lo escrito de memoria contra el texto original. */
 export type CharState = 'correct' | 'incorrect';
+
+/** Subconjunto de GameState que se sincroniza con MongoDB vía /api/progress. */
+export interface ProgressSnapshot {
+  unlockedLevelId: number;
+  bestResults: Record<number, LevelResult>;
+}

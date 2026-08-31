@@ -1,4 +1,6 @@
 ---
+export const prerender = true;
+
 import Layout from '@/layouts/Layout.astro';
 import ProgressDashboard from '@/components/ProgressDashboard';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -25,7 +27,8 @@ import ThemeToggle from '@/components/ThemeToggle';
     class="mt-10 border-t border-transparent px-6 py-6 text-center text-sm text-slate-500 transition-colors dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
   >
     <p>
-      Hecho para entrenar la memoria a corto plazo · tu progreso se guarda solo en este navegador.
+      Hecho para entrenar la memoria a corto plazo · tu progreso se guarda en este navegador y se
+      respalda automáticamente en la nube.
     </p>
   </footer>
 </Layout>

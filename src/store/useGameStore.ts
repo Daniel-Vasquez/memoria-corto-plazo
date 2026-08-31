@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { LevelResult } from '@/types/game';
+import { pushProgress } from '@/lib/progressSync';
+import type { LevelResult, ProgressSnapshot } from '@/types/game';
 
 interface GameState {
   /** Name entered on first visit; null until the player sets it. */
@@ -15,6 +16,9 @@ interface GameState {
   setActiveLevelId: (levelId: number) => void;
   completeLevel: (result: LevelResult) => void;
   resetProgress: () => void;
+  /** Aplica un snapshot ya mezclado con Mongo (ver progressSync.ts) — no dispara
+   * pushProgress porque viene de sincronizar, no de una acción nueva del jugador. */
+  applyProgress: (snapshot: ProgressSnapshot) => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -30,17 +34,22 @@ export const useGameStore = create<GameState>()(
         set((state) => {
           const previousBest = state.bestResults[result.levelId];
           const isNewBest = !previousBest || result.wpm > previousBest.wpm;
-          return {
-            bestResults: isNewBest
-              ? { ...state.bestResults, [result.levelId]: result }
-              : state.bestResults,
-            unlockedLevelId:
-              result.passed && result.levelId >= state.unlockedLevelId
-                ? Math.min(result.levelId + 1, 40)
-                : state.unlockedLevelId,
-          };
+          const bestResults = isNewBest
+            ? { ...state.bestResults, [result.levelId]: result }
+            : state.bestResults;
+          const unlockedLevelId =
+            result.passed && result.levelId >= state.unlockedLevelId
+              ? Math.min(result.levelId + 1, 40)
+              : state.unlockedLevelId;
+          void pushProgress({ unlockedLevelId, bestResults });
+          return { bestResults, unlockedLevelId };
         }),
-      resetProgress: () => set({ unlockedLevelId: 1, activeLevelId: 1, bestResults: {} }),
+      resetProgress: () => {
+        void pushProgress({ unlockedLevelId: 1, bestResults: {} });
+        set({ unlockedLevelId: 1, activeLevelId: 1, bestResults: {} });
+      },
+      applyProgress: (snapshot) =>
+        set({ unlockedLevelId: snapshot.unlockedLevelId, bestResults: snapshot.bestResults }),
     }),
     { name: 'memoria-corto-plazo-progress' },
   ),
