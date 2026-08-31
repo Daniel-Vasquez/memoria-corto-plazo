@@ -517,8 +517,8 @@ export default function MemoryGame() {
     // lo que el servidor tenga de más (p. ej. progreso restaurado tras borrar
     // localStorage). No bloquea el render: si falla, el juego sigue andando
     // con localStorage como fuente de verdad.
-    const { unlockedLevelId, bestResults, applyProgress } = useGameStore.getState();
-    void syncProgressOnLoad({ unlockedLevelId, bestResults }, applyProgress);
+    const { playerName, unlockedLevelId, bestResults, applyProgress } = useGameStore.getState();
+    void syncProgressOnLoad({ playerName, unlockedLevelId, bestResults }, applyProgress);
   }, []);
 
   useEffect(() => {

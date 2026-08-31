@@ -16,18 +16,20 @@ function result(overrides: Partial<LevelResult>): LevelResult {
 
 describe('mergeProgress', () => {
   it('keeps the higher unlockedLevelId', () => {
-    const local: ProgressSnapshot = { unlockedLevelId: 3, bestResults: {} };
-    const remote: ProgressSnapshot = { unlockedLevelId: 7, bestResults: {} };
+    const local: ProgressSnapshot = { playerName: null, unlockedLevelId: 3, bestResults: {} };
+    const remote: ProgressSnapshot = { playerName: null, unlockedLevelId: 7, bestResults: {} };
     expect(mergeProgress(local, remote).unlockedLevelId).toBe(7);
     expect(mergeProgress(remote, local).unlockedLevelId).toBe(7);
   });
 
   it('keeps the local bestResult when its wpm is higher', () => {
     const local: ProgressSnapshot = {
+      playerName: null,
       unlockedLevelId: 1,
       bestResults: { 1: result({ wpm: 10 }) },
     };
     const remote: ProgressSnapshot = {
+      playerName: null,
       unlockedLevelId: 1,
       bestResults: { 1: result({ wpm: 6 }) },
     };
@@ -36,10 +38,12 @@ describe('mergeProgress', () => {
 
   it('takes the remote bestResult when its wpm is higher', () => {
     const local: ProgressSnapshot = {
+      playerName: null,
       unlockedLevelId: 1,
       bestResults: { 1: result({ wpm: 6 }) },
     };
     const remote: ProgressSnapshot = {
+      playerName: null,
       unlockedLevelId: 1,
       bestResults: { 1: result({ wpm: 10 }) },
     };
@@ -48,10 +52,12 @@ describe('mergeProgress', () => {
 
   it('unions bestResults across levels present on only one side', () => {
     const local: ProgressSnapshot = {
+      playerName: null,
       unlockedLevelId: 1,
       bestResults: { 1: result({ levelId: 1 }) },
     };
     const remote: ProgressSnapshot = {
+      playerName: null,
       unlockedLevelId: 1,
       bestResults: { 2: result({ levelId: 2 }) },
     };
@@ -61,10 +67,23 @@ describe('mergeProgress', () => {
 
   it('returns the local snapshot unchanged when remote is empty', () => {
     const local: ProgressSnapshot = {
+      playerName: 'Ana',
       unlockedLevelId: 5,
       bestResults: { 1: result({}) },
     };
-    const remote: ProgressSnapshot = { unlockedLevelId: 1, bestResults: {} };
+    const remote: ProgressSnapshot = { playerName: null, unlockedLevelId: 1, bestResults: {} };
     expect(mergeProgress(local, remote)).toEqual(local);
+  });
+
+  it('keeps the local playerName when already set, even if remote has one', () => {
+    const local: ProgressSnapshot = { playerName: 'Ana', unlockedLevelId: 1, bestResults: {} };
+    const remote: ProgressSnapshot = { playerName: 'Beto', unlockedLevelId: 1, bestResults: {} };
+    expect(mergeProgress(local, remote).playerName).toBe('Ana');
+  });
+
+  it('falls back to the remote playerName when local has none yet', () => {
+    const local: ProgressSnapshot = { playerName: null, unlockedLevelId: 1, bestResults: {} };
+    const remote: ProgressSnapshot = { playerName: 'Beto', unlockedLevelId: 1, bestResults: {} };
+    expect(mergeProgress(local, remote).playerName).toBe('Beto');
   });
 });

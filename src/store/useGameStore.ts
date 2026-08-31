@@ -23,12 +23,17 @@ interface GameState {
 
 export const useGameStore = create<GameState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       playerName: null,
       unlockedLevelId: 1,
       activeLevelId: 1,
       bestResults: {},
-      setPlayerName: (name) => set({ playerName: name.trim() }),
+      setPlayerName: (name) => {
+        const playerName = name.trim();
+        set({ playerName });
+        const { unlockedLevelId, bestResults } = get();
+        void pushProgress({ playerName, unlockedLevelId, bestResults });
+      },
       setActiveLevelId: (levelId) => set({ activeLevelId: levelId }),
       completeLevel: (result) =>
         set((state) => {
@@ -41,15 +46,22 @@ export const useGameStore = create<GameState>()(
             result.passed && result.levelId >= state.unlockedLevelId
               ? Math.min(result.levelId + 1, 40)
               : state.unlockedLevelId;
-          void pushProgress({ unlockedLevelId, bestResults });
+          void pushProgress({ playerName: state.playerName, unlockedLevelId, bestResults });
           return { bestResults, unlockedLevelId };
         }),
       resetProgress: () => {
-        void pushProgress({ unlockedLevelId: 1, bestResults: {} });
+        const { playerName } = get();
+        void pushProgress({ playerName, unlockedLevelId: 1, bestResults: {} });
         set({ unlockedLevelId: 1, activeLevelId: 1, bestResults: {} });
       },
       applyProgress: (snapshot) =>
-        set({ unlockedLevelId: snapshot.unlockedLevelId, bestResults: snapshot.bestResults }),
+        set((state) => ({
+          // El nombre local (si ya se seteó en este navegador) tiene prioridad;
+          // el remoto solo lo restaura cuando localStorage se perdió/borró.
+          playerName: state.playerName ?? snapshot.playerName,
+          unlockedLevelId: snapshot.unlockedLevelId,
+          bestResults: snapshot.bestResults,
+        })),
     }),
     { name: 'memoria-corto-plazo-progress' },
   ),

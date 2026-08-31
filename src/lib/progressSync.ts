@@ -4,7 +4,10 @@ const PROGRESS_ENDPOINT = '/api/progress';
 
 /** Combina snapshot local (localStorage) y remoto (Mongo): gana el mayor
  * unlockedLevelId, y por nivel gana el bestResult con mayor wpm — misma
- * regla que ya usa `completeLevel` en useGameStore.ts para decidir "isNewBest". */
+ * regla que ya usa `completeLevel` en useGameStore.ts para decidir "isNewBest".
+ * `playerName` no tiene un criterio de "mejor" como wpm, así que prefiere el
+ * local (el que está activo en este navegador ahora mismo) y solo cae al
+ * remoto para restaurarlo si el local todavía no se seteó. */
 export function mergeProgress(local: ProgressSnapshot, remote: ProgressSnapshot): ProgressSnapshot {
   const bestResults: ProgressSnapshot['bestResults'] = { ...local.bestResults };
   for (const [key, remoteResult] of Object.entries(remote.bestResults)) {
@@ -15,6 +18,7 @@ export function mergeProgress(local: ProgressSnapshot, remote: ProgressSnapshot)
     }
   }
   return {
+    playerName: local.playerName ?? remote.playerName,
     unlockedLevelId: Math.max(local.unlockedLevelId, remote.unlockedLevelId),
     bestResults,
   };
@@ -60,6 +64,7 @@ export async function syncProgressOnLoad(
   const merged = mergeProgress(local, remote);
 
   if (
+    merged.playerName !== local.playerName ||
     merged.unlockedLevelId !== local.unlockedLevelId ||
     JSON.stringify(merged.bestResults) !== JSON.stringify(local.bestResults)
   ) {
@@ -67,6 +72,7 @@ export async function syncProgressOnLoad(
   }
 
   if (
+    merged.playerName !== remote.playerName ||
     merged.unlockedLevelId !== remote.unlockedLevelId ||
     JSON.stringify(merged.bestResults) !== JSON.stringify(remote.bestResults)
   ) {

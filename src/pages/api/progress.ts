@@ -36,9 +36,16 @@ function isValidLevelResult(value: unknown): value is ProgressSnapshot['bestResu
   );
 }
 
+// Mismo límite que el maxLength del input en NameModal.tsx.
+const PLAYER_NAME_MAX_LENGTH = 30;
+
 function isValidSnapshot(value: unknown): value is ProgressSnapshot {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
+  if (v.playerName !== null && typeof v.playerName !== 'string') return false;
+  if (typeof v.playerName === 'string' && v.playerName.length > PLAYER_NAME_MAX_LENGTH) {
+    return false;
+  }
   if (typeof v.unlockedLevelId !== 'number' || v.unlockedLevelId < 1 || v.unlockedLevelId > 40) {
     return false;
   }
@@ -46,17 +53,22 @@ function isValidSnapshot(value: unknown): value is ProgressSnapshot {
   return Object.values(v.bestResults).every(isValidLevelResult);
 }
 
-/** GET/POST de un snapshot completo `{ unlockedLevelId, bestResults }`, identificado
- * por un id anónimo en cookie httpOnly (ver getOrCreatePlayerId). Última escritura
- * gana: es progreso de un solo jugador por id, no hace falta merge server-side. */
+/** GET/POST de un snapshot completo `{ playerName, unlockedLevelId, bestResults }`,
+ * identificado por un id anónimo en cookie httpOnly (ver getOrCreatePlayerId).
+ * Última escritura gana: es progreso de un solo jugador por id, no hace falta
+ * merge server-side. */
 export const GET: APIRoute = async ({ cookies }) => {
   const playerId = getOrCreatePlayerId(cookies);
   const collection = await getProgressCollection();
   const doc = await collection.findOne({ _id: playerId });
 
   const snapshot: ProgressSnapshot = doc
-    ? { unlockedLevelId: doc.unlockedLevelId, bestResults: doc.bestResults }
-    : { unlockedLevelId: 1, bestResults: {} };
+    ? {
+        playerName: doc.playerName ?? null,
+        unlockedLevelId: doc.unlockedLevelId,
+        bestResults: doc.bestResults,
+      }
+    : { playerName: null, unlockedLevelId: 1, bestResults: {} };
 
   return new Response(JSON.stringify(snapshot), {
     headers: { 'Content-Type': 'application/json' },
@@ -80,7 +92,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const collection = await getProgressCollection();
   await collection.updateOne(
     { _id: playerId },
-    { $set: { unlockedLevelId: body.unlockedLevelId, bestResults: body.bestResults } },
+    {
+      $set: {
+        playerName: body.playerName,
+        unlockedLevelId: body.unlockedLevelId,
+        bestResults: body.bestResults,
+      },
+    },
     { upsert: true },
   );
 

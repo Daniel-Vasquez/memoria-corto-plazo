@@ -7,6 +7,7 @@ const COLLECTION_NAME = 'progress';
 export interface ProgressDocument {
   /** Id anónimo del jugador (cookie `player_id`, ver src/pages/api/progress.ts). */
   _id: string;
+  playerName: string | null;
   unlockedLevelId: number;
   bestResults: Record<number, LevelResult>;
 }

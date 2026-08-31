@@ -142,13 +142,15 @@ src/
   porque el snapshot que recibe ya viene mezclado por `mergeProgress()`).
   Sin cambios de lógica respecto al proyecto original — solo cambió la key
   de `localStorage` (ver Gotchas/Pendiente).
-- `ProgressSnapshot` (`types/game.ts`): `{ unlockedLevelId, bestResults }` —
-  el subconjunto de `GameState` que viaja hacia/desde `/api/progress`.
-  Deliberadamente no incluye `playerName` ni `activeLevelId`: el nombre no
-  tiene valor guardado en Mongo sin un sistema de cuentas real (ver
-  "Sincronización de progreso con MongoDB"), y `activeLevelId` es una
-  preferencia de UI por dispositivo ("qué nivel tenía abierto"), no progreso
-  que tenga sentido sincronizar.
+- `ProgressSnapshot` (`types/game.ts`): `{ playerName, unlockedLevelId,
+  bestResults }` — el subconjunto de `GameState` que viaja hacia/desde
+  `/api/progress`. No incluye `activeLevelId`: es una preferencia de UI por
+  dispositivo ("qué nivel tenía abierto"), no progreso que tenga sentido
+  sincronizar. `playerName` sí se sincroniza (agregado en una sesión
+  posterior a la migración inicial — ver "Sincronización de progreso con
+  MongoDB") aunque es un texto libre sin verificar, igual que siempre fue en
+  `NameModal`: no hay ninguna garantía de que identifique a una persona
+  real, es solo lo que el jugador tipeó.
 
 ## La mecánica: máquina de estados de 3 fases (`useMemoryEngine`)
 
@@ -305,6 +307,9 @@ falla.
     que ya aplicaba `patternGenerator.test.ts`). Misma regla que
     `completeLevel` en `useGameStore.ts` para decidir qué `bestResult` gana
     por nivel (mayor `wpm`), y `Math.max` para `unlockedLevelId`.
+    `playerName` no tiene un "mejor" comparable como `wpm`, así que prefiere
+    el local (`local.playerName ?? remote.playerName`) y solo cae al remoto
+    si el local todavía no se seteó.
   - `pushProgress(snapshot)`: `POST` fire-and-forget envuelto en
     `try/catch` silencioso — sin red o con Mongo caído, no revienta ninguna
     acción del jugador, solo se pierde ese respaldo puntual (se reintenta
@@ -328,11 +333,14 @@ falla.
     parámetros — los pasa `MemoryGame.tsx`, que ya tiene acceso al store.
     Efecto colateral bueno: `mergeProgress`/`pushProgress`/`pullProgress`
     quedan testeables sin mockear Zustand.
-- **Qué dispara un `push`**: solo `completeLevel` y `resetProgress` en
-  `useGameStore.ts` — son las dos acciones que cambian
-  `unlockedLevelId`/`bestResults`. `setPlayerName` y `setActiveLevelId` NO
-  disparan sync porque ninguno de los dos campos forma parte de
-  `ProgressSnapshot` (ver Modelo de datos, arriba).
+- **Qué dispara un `push`**: `completeLevel`, `resetProgress` y
+  `setPlayerName` en `useGameStore.ts` — las tres acciones que cambian algún
+  campo de `ProgressSnapshot`. `setActiveLevelId` NO dispara sync porque
+  `activeLevelId` no forma parte del snapshot (ver Modelo de datos, arriba).
+  `applyProgress()` (usado solo al sincronizar al cargar) adopta el
+  `playerName` remoto únicamente si el local todavía es `null` — así no
+  pisa lo que el jugador ya tipeó en este navegador, pero sí lo restaura si
+  `localStorage` se borró y la cookie `player_id` sigue viva.
 - **`output: 'server'` + `@astrojs/vercel` en vez de mantener el sitio
   100% estático**: imprescindible para que `/api/progress` corra
   server-side (el driver de `mongodb` no puede ejecutarse en el bundle del

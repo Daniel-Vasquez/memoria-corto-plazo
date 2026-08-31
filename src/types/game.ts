@@ -35,6 +35,7 @@ export type CharState = 'correct' | 'incorrect';
 
 /** Subconjunto de GameState que se sincroniza con MongoDB vía /api/progress. */
 export interface ProgressSnapshot {
+  playerName: string | null;
   unlockedLevelId: number;
   bestResults: Record<number, LevelResult>;
 }
